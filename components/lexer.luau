@@ -18,7 +18,7 @@ local C_BANG = string.byte("!")
 
 local C_BACKSLASH = string.byte("\\")
 local C_SQUOTE = string.byte("'")
-local C_DQUOTE = string.byte("\"")
+local C_DQUOTE = string.byte('"')
 
 -- Lookup tables
 local operators = table.freeze({
@@ -52,7 +52,6 @@ local operators = table.freeze({
 	[string.byte("]")] = tokens.RBRACKET,
 })
 
-
 local keywords = table.freeze({
 	["fn"] = tokens.FUNCTION,
 	["let"] = tokens.LET,
@@ -80,18 +79,18 @@ local function peek_char(input: string, read_pos: number, str_length: number): n
 	if read_pos >= str_length + 1 then
 		return 0
 	end
-	
+
 	return input:sub(read_pos, read_pos):byte()
 end
 
 -- Returns 2 token streams, the first being the types, second being the literals
 -- Each go in order, so types[1] correlates to literals[1]
-return function(input: string): ({number}, {string})
+return function(input: string): ({ number }, { string })
 	local types = {}
 	local literals = {}
 
 	local read_pos = 2
-	local cur_char = input:sub(1,1)
+	local cur_char = input:sub(1, 1)
 	local cur_byte = cur_char:byte()
 	local next_byte = 0
 
@@ -101,7 +100,7 @@ return function(input: string): ({number}, {string})
 	while true do
 		local token_type = tokens.ILLEGAL
 		local token_literal = ""
-		
+
 		-- Skip whitespace
 		while cur_byte == C_SPACE or cur_byte == C_TAB or cur_byte == C_NEWLINE or cur_byte == C_RETURN do
 			cur_char, read_pos, cur_byte = read_char(input, read_pos, length)
@@ -131,7 +130,7 @@ return function(input: string): ({number}, {string})
 			end
 		elseif cur_byte == 0 then -- EOF
 			insert(types, tokens.EOF)
-			insert(literals, '')
+			insert(literals, "")
 			break
 		elseif cur_byte == C_SQUOTE or cur_byte == C_DQUOTE then -- Strings
 			local str = {}
@@ -155,25 +154,30 @@ return function(input: string): ({number}, {string})
 			end
 
 			token_type, token_literal = tokens.STRING, concat(str)
-
 		else -- Idents, Ints, Illegal
 			-- Alphabetic [a-zA-Z_]
 			if (cur_byte >= 65 and cur_byte <= 90) or (cur_byte >= 97 and cur_byte <= 122) or (cur_byte == 95) then
 				local start = read_pos - 1
-				
+
 				while true do
 					cur_char, read_pos, cur_byte = read_char(input, read_pos, length)
-					if not ((cur_byte >= 65 and cur_byte <= 90) or (cur_byte >= 97 and cur_byte <= 122) or (cur_byte == 95)) then 
-						break 
+					if
+						not (
+							(cur_byte >= 65 and cur_byte <= 90)
+							or (cur_byte >= 97 and cur_byte <= 122)
+							or (cur_byte == 95)
+						)
+					then
+						break
 					end
 				end
 
-				local literal = input:sub(start, read_pos-2)
+				local literal = input:sub(start, read_pos - 2)
 				insert(types, keywords[literal] or tokens.IDENT)
 				insert(literals, literal)
 
 				continue
-			elseif (cur_byte >= 48 and cur_byte <= 57) then -- Numeric [0-9]
+			elseif cur_byte >= 48 and cur_byte <= 57 then -- Numeric [0-9]
 				local start = read_pos - 1
 
 				while true do
@@ -184,7 +188,7 @@ return function(input: string): ({number}, {string})
 				end
 
 				insert(types, tokens.INT)
-				insert(literals, input:sub(start, read_pos-2))
+				insert(literals, input:sub(start, read_pos - 2))
 
 				continue
 			else
@@ -194,7 +198,7 @@ return function(input: string): ({number}, {string})
 
 		insert(types, token_type)
 		insert(literals, token_literal)
-		
+
 		cur_char, read_pos, cur_byte = read_char(input, read_pos, length)
 	end
 
