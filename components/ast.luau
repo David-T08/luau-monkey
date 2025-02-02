@@ -21,7 +21,32 @@ local NODE_TYPES = table.freeze({
 	ARRAY_LITERAL = 0x12,
 	INDEX_EXPRESSION = 0x13,
 	ARRAY_INDEX_EXPRESSION = 0x14,
-	PROGRAM = 0x15
+	PROGRAM = 0x15,
+})
+
+local NODE_TYPES_STRINGS = table.freeze({
+	NODE = "NODE",
+	STATEMENT = "STATEMENT",
+	EXPRESSION = "EXPRESSION",
+	LET_STATEMENT = "LET_STATEMENT",
+	RETURN_STATEMENT = "RETURN_STATEMENT",
+	EXPRESSION_STATEMENT = "EXPRESSION_STATEMENT",
+	ASSIGNMENT_STATEMENT = "ASSIGNMENT_STATEMENT",
+	BLOCK_STATEMENT = "BLOCK_STATEMENT",
+	IDENTIFIER = "IDENTIFIER",
+	POST_INCREMENT_IDENTIFIER = "POST_INCREMENT_IDENTIFIER",
+	PREFIX_EXPRESSION = "PREFIX_EXPRESSION",
+	INFIX_EXPRESSION = "INFIX_EXPRESSION",
+	INTEGER_LITERAL = "INTEGER_LITERAL",
+	BOOLEAN_LITERAL = "BOOLEAN_LITERAL",
+	FUNCTION_LITERAL = "FUNCTION_LITERAL",
+	IF_EXPRESSION = "IF_EXPRESSION",
+	CALL_EXPRESSION = "CALL_EXPRESSION",
+	STRING_LITERAL = "STRING_LITERAL",
+	ARRAY_LITERAL = "ARRAY_LITERAL",
+	INDEX_EXPRESSION = "INDEX_EXPRESSION",
+	ARRAY_INDEX_EXPRESSION = "ARRAY_INDEX_EXPRESSION",
+	PROGRAM = "PROGRAM",
 })
 
 export type Node = {node_type: number}
@@ -64,14 +89,11 @@ export type Expression = Node & {_expr: boolean?}
 
 export type Identifier = Expression & {
 	literal: string,
-	value: string
 }
 
 export type PostIncremementIdentifier = Expression & {
 	literal: string,
 	operator: string,
-
-	value: string,
 }
 
 export type PrefixExpression = Expression & {
@@ -89,13 +111,15 @@ export type InfixExpression = Expression & {
 
 -- Literal Expressions
 export type IntegerLiteral = Expression & {
-	literal: string,
 	value: number
 }
 
 export type BooleanLiteral = Expression & {
-	literal: string,
 	value: boolean,
+}
+
+export type StringLiteral = Expression & {
+	value: string,
 }
 
 export type FunctionLiteral = Expression & {
@@ -123,18 +147,13 @@ export type CallExpression = Expression & {
 	arguments: {Expression},
 }
 
-export type StringLiteral = Expression & {
-	literal: string,
-	value: string,
-}
-
 export type IndexExpression = Expression & {
 	literal: string,
 	left: Expression,
 	index: Expression
 }
 
-export type ArrayIndexExpression = Expression & {
+export type ArrayAssignmentExpression = Expression & {
 	literal: string,
 	array: Expression,
 	index: Expression,
