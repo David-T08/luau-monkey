@@ -27,7 +27,8 @@ local NODE_TYPES = table.freeze({
 export type Node = {node_type: number}
 
 -- Statements
-export type Statement = Node & {}
+-- The _stmt field is never used, it is simply for the typechecker to realize Statement != Expression
+export type Statement = Node & {_stmt: boolean?}
 
 export type LetStatement = Statement & {
 	literal: string,
@@ -58,7 +59,8 @@ export type BlockStatement = Statement & {
 }
 
 -- Expressions
-export type Expression = Node & {}
+-- The _expr field is never used, it is simply for the typechecker to realize Statement != Expression
+export type Expression = Node & {_expr: boolean?}
 
 export type Identifier = Expression & {
 	literal: string,
