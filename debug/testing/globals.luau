@@ -67,18 +67,44 @@ local function table_eq(table1, table2)
 end
 
 globals.are = {
-	same = function(got, expected)
-		local result = table_eq(got, expected)
+	same = function(got, expected, custom_err: string?, err_lvl: number?)
+		local result
+		if type(got) == "table" then
+			result = table_eq(got, expected)
+		else
+			result = got == expected
+		end
 
-		local file, line = debug.info(2, "sl")
+		local file, line = debug.info(err_lvl or 2, "sl")
 		file = file:match(`%[string "([%w%._/]+)"]`)
 
-		print(file, line)
-
 		if not result then
-			error(`[!!FAILURE!!][!!{file}!!{line}!!]Expected objects to be the same.\nExpected: ({tostring(expected)}) {stdio.format(expected)}\nPassed In: ({tostring(got)}) {stdio.format(got)}`)
+			if custom_err then
+				error(`[!!FAILURE!!][!!{file}!!{line}!!]{custom_err}`)
+			else
+				error(
+					`[!!FAILURE!!][!!{file}!!{line}!!]Expected objects to be the same.\nExpected: ({tostring(expected)}) {stdio.format(
+						expected
+					)}\nPassed In: ({tostring(got)}) {stdio.format(got)}`
+				)
+			end
 		end
-	end
+	end,
+}
+globals.are.equal = globals.are.same
+globals.are_equal = globals.are.equal
+
+globals.is = {
+	truthy = function(value: any, custom_err: string?, err_lvl: number?)
+		local file, line = debug.info(err_lvl or 2, "sl")
+		file = file:match(`%[string "([%w%._/]+)"]`)
+
+		if not not not value then
+			error(
+				`[!!FAILURE!!][!!{file}!!{line}!!]{custom_err or `Expected {value} to be truthy`}`
+			)
+		end
+	end,
 }
 
 -- Assert, It
@@ -86,6 +112,6 @@ return globals, function(label: string, callback: () -> ())
 	return {
 		label = label,
 
-		callback = callback
+		callback = callback,
 	}
 end

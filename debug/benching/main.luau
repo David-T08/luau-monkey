@@ -27,7 +27,7 @@ local input = [[
     {1: 2, 3: [4, 5], 6: {7: 8}};
     
     let const x = 5;
-    let mut y = "changeable";
+    let y = "changeable";
     y = "new value";
     
     while (x < 100) {
@@ -57,9 +57,20 @@ local input = [[
     0b101010;
     3.1415926535;
     -42;
+
+		let strlen = fn(str) {
+		  local rand = complex(1,7,3);
+			if (rand == "complex condition met") {
+			  return add(1,2) + add(add(add(3,2), 2), 5) / 2;
+			}
+
+			return -1;
+		};
 ]]
 
 local bench = require("bencher")
 local lexer = require("../../components/lexer")
+local parse = require("../../components/parser")
 
 bench("lexer", lexer, 1e4, input)
+bench("parser", parse, 1e4, lexer(input))

@@ -52,7 +52,7 @@ local function benchmark_stats(times)
 	}
 end
 
-return function<T>(label: string, f: (...T) -> any, times: number, ...: T)
+return function<T...>(label: string, f: (T...) -> any, times: number, ...: T)
 	local averages = {}
 
 	for _ = 1, times do
