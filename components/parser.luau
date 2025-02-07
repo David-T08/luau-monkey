@@ -1,7 +1,6 @@
 --!strict
 local tokens = require("tokens")
 local AST = require("ast")
-local stdio = require("@lune/stdio")
 
 local constants = table.freeze({
 	LOWEST = 0x0,
@@ -37,8 +36,8 @@ type infixParseFn = (expr: AST.Expression) -> AST.Expression?
 -- Most common variables here
 -- Put them outside the function since it'd be painful to update and pass them in to EVERY function
 
-local prefix_fns: {[number]: prefixParseFn} = {}
-local infix_fns: {[number]: infixParseFn} = {}
+local prefix_fns: { [number]: prefixParseFn } = {}
+local infix_fns: { [number]: infixParseFn } = {}
 
 -- Current token
 local c_tok_type: number = nil
@@ -58,7 +57,9 @@ local token_pos = 1
 local max_token_pos = 1
 
 local function next_token()
-	if token_pos > max_token_pos + 1 then return end
+	if token_pos > max_token_pos + 1 then
+		return
+	end
 	-- Set current token to peek token
 	c_tok_type = p_tok_type
 	c_tok_lit = p_tok_lit
@@ -109,12 +110,11 @@ function parse_infix_expression(left: AST.Expression): AST.InfixExpression
 	return {
 		node_type = AST.INFIX_EXPRESSION,
 
-		literal = start_tok_lit,
 		operator = start_tok_lit,
 
 		left = left,
 		-- TODO: Implement better error handling
-		right = parse_expression(precedence) :: AST.Expression
+		right = parse_expression(precedence) :: AST.Expression,
 	}
 end
 
@@ -125,22 +125,16 @@ function parse_prefix_expression(): AST.PrefixExpression
 	return {
 		node_type = AST.PREFIX_EXPRESSION,
 
-		literal = start_tok_lit,
 		operator = start_tok_lit,
-
-		right = parse_expression(constants.PREFIX) :: AST.Expression
+		right = parse_expression(constants.PREFIX) :: AST.Expression,
 	}
 end
 
 -- Literals
 function parse_array_literal(): AST.ArrayLiteral
-	local start_tok_lit = c_tok_lit
-
 	return {
 		node_type = AST.ARRAY_LITERAL,
-
-		literal = start_tok_lit,
-		elements = parse_expression_list(tokens.RBRACKET)
+		elements = parse_expression_list(tokens.RBRACKET),
 	}
 end
 
@@ -148,15 +142,15 @@ function parse_string_literal(): AST.StringLiteral
 	return {
 		node_type = AST.STRING_LITERAL,
 
-		value = c_tok_lit
+		value = c_tok_lit,
 	}
 end
 
 function parse_boolean_literal(): AST.BooleanLiteral
 	return {
 		node_type = AST.BOOLEAN_LITERAL,
-		
-		value = c_tok_type == tokens.TRUE
+
+		value = c_tok_type == tokens.TRUE,
 	}
 end
 
@@ -170,13 +164,11 @@ function parse_integer_literal(): AST.IntegerLiteral?
 	return {
 		node_type = AST.INTEGER_LITERAL,
 
-		value = int
+		value = int,
 	}
 end
 
 function parse_function_literal(): AST.FunctionLiteral?
-	local start_tok_lit = c_tok_lit
-
 	if not expect_peek(tokens.LPAREN) then
 		return
 	end
@@ -189,7 +181,6 @@ function parse_function_literal(): AST.FunctionLiteral?
 	return {
 		node_type = AST.FUNCTION_LITERAL,
 
-		literal = start_tok_lit,
 		parameters = params,
 		body = parse_block_statement(),
 	}
@@ -197,50 +188,51 @@ end
 
 -- Statements
 function parse_let_statement(): AST.LetStatement?
-	local start_tok_lit = c_tok_lit -- LET
 	local is_const = p_tok_type == tokens.CONSTANT
 
 	if is_const then
 		next_token()
 	end
 
-	if not expect_peek(tokens.IDENT) then return end
+	if not expect_peek(tokens.IDENT) then
+		return
+	end
 
 	local ident_tok_lit = c_tok_lit
-	if not expect_peek(tokens.ASSIGN) then return end
+	if not expect_peek(tokens.ASSIGN) then
+		return
+	end
 
 	next_token()
 
 	local value = parse_expression(constants.LOWEST)
-	if not value then return end
+	if not value then
+		return
+	end
 	while c_tok_type ~= tokens.SEMICOLON and c_tok_type ~= tokens.EOF do
 		next_token()
 	end
 
-	local identifer: AST.Identifier = {
-		node_type = AST.IDENTIFIER,
-		value = ident_tok_lit,
-		literal = ident_tok_lit
-	}
-
 	return {
-		literal = start_tok_lit,
 		node_type = AST.LET_STATEMENT,
 
-		name = identifer,
 		value = value,
+		name = {
+			node_type = AST.IDENTIFIER,
+			value = ident_tok_lit,
+		} :: AST.Identifier,
 
-		constant = is_const
+		constant = is_const,
 	}
-
 end
 
 function parse_return_statement(): AST.ReturnStatement?
-	local start_tok_lit = c_tok_lit
 	next_token()
 
 	local return_value = parse_expression(constants.LOWEST)
-	if not return_value then return end
+	if not return_value then
+		return
+	end
 
 	while c_tok_type ~= tokens.SEMICOLON and c_tok_type ~= tokens.EOF do
 		next_token()
@@ -248,63 +240,55 @@ function parse_return_statement(): AST.ReturnStatement?
 
 	return {
 		node_type = AST.RETURN_STATEMENT,
-		literal = start_tok_lit,
-
-		return_value = return_value
+		return_value = return_value,
 	}
 end
 
 function parse_expression_statement(): AST.ExpressionStatement?
-	local start_tok_lit = c_tok_lit
-
 	local expr = parse_expression(constants.LOWEST)
-	if not expr then return end
-
-	local expr_stmt: AST.ExpressionStatement = {
-		node_type = AST.EXPRESSION_STATEMENT,
-		literal = start_tok_lit,
-		expression = expr
-	}
+	if not expr then
+		return
+	end
 
 	if p_tok_type == tokens.SEMICOLON then
 		next_token()
 	end
 
-	return expr_stmt
+	return {
+		node_type = AST.EXPRESSION_STATEMENT,
+		expression = expr,
+	}
 end
 
 function parse_assignment_statement(): AST.AssignmentStatement?
 	local start_tok_lit = c_tok_lit
-	if not expect_peek(tokens.ASSIGN) then return end
+	if not expect_peek(tokens.ASSIGN) then
+		return
+	end
 
 	next_token()
 	local value = parse_expression(constants.LOWEST)
-	if not value then return end
+	if not value then
+		return
+	end
 
 	while c_tok_type ~= tokens.SEMICOLON and c_tok_type ~= tokens.EOF do
 		next_token()
 	end
 
-	local identifier: AST.Identifier = {
-		node_type = AST.IDENTIFIER,
-
-		literal = start_tok_lit,
-		value = start_tok_lit
-	}
-
 	return {
 		node_type = AST.ASSIGNMENT_STATEMENT,
 
-		name = identifier,
 		value = value,
-
-		literal = start_tok_lit
+		name = {
+			node_type = AST.IDENTIFIER,
+			value = start_tok_lit,
+		} :: AST.Identifier,
 	}
 end
 
 function parse_block_statement(): AST.BlockStatement
-	local start_tok_lit = c_tok_lit
-	local statements: {AST.Statement} = {}
+	local statements: { AST.Statement } = {}
 
 	next_token()
 	while c_tok_type ~= tokens.RBRACE and c_tok_type ~= tokens.EOF do
@@ -332,23 +316,26 @@ function parse_block_statement(): AST.BlockStatement
 		node_type = AST.BLOCK_STATEMENT,
 
 		statements = statements,
-		literal = start_tok_lit
 	}
 end
 
-function parse_array_index_assignment_statement(tok_lit: string, identifier: AST.Expression, index: AST.Expression): AST.ArrayAssignmentExpression?
+function parse_array_index_assignment_statement(
+	identifier: AST.Expression,
+	index: AST.Expression
+): AST.ArrayIndexAssignmentStatement?
 	next_token()
 
 	local value = parse_expression(constants.LOWEST)
-	if not value then return end
+	if not value then
+		return
+	end
 
 	return {
-		node_type = AST.ARRAY_INDEX_EXPRESSION,
+		node_type = AST.ARRAY_INDEX_ASSIGNMENT_STATEMENT,
 
-		literal = c_tok_lit,
 		index = index,
 		array = identifier,
-		value = value
+		value = value,
 	}
 end
 
@@ -364,35 +351,45 @@ function parse_grouped_expression(): AST.Expression?
 	return expr
 end
 
-function parse_identifier(): AST.Identifier | AST.PostIncremementIdentifier
+function parse_identifier(): AST.Identifier | AST.PostIncrementExpression
+	local start_tok_lit = c_tok_lit
 	if p_tok_type == tokens.INCREMENT or p_tok_type == tokens.DECREMENT then
-		local start_tok_lit = c_tok_lit
 		next_token()
 
 		return {
-			node_type = AST.POST_INCREMENT_IDENTIFIER,
+			node_type = AST.POST_INCREMENT_EXPRESSION,
 
-			literal = start_tok_lit, -- The identifier
+			left = {
+				node_type = AST.IDENTIFIER,
+				value = start_tok_lit,
+			} :: AST.Identifier,
 			operator = c_tok_lit, -- ++ or --
-		} :: AST.PostIncremementIdentifier
+		} :: AST.PostIncrementExpression
 	end
 
 	return {
 		node_type = AST.IDENTIFIER,
-		literal = c_tok_lit
+		value = start_tok_lit,
 	} :: AST.Identifier
 end
 
 function parse_if_expression(): AST.IfExpression?
-	local start_tok_lit = c_tok_lit
-	if not expect_peek(tokens.LPAREN) then return end
+	if not expect_peek(tokens.LPAREN) then
+		return
+	end
 
 	next_token()
 	local condition = parse_expression(constants.LOWEST)
-	if not condition then return end
+	if not condition then
+		return
+	end
 
-	if not expect_peek(tokens.RPAREN) then return end
-	if not expect_peek(tokens.LBRACE) then return end
+	if not expect_peek(tokens.RPAREN) then
+		return
+	end
+	if not expect_peek(tokens.LBRACE) then
+		return
+	end
 
 	local consequence = parse_block_statement()
 	local alternate: AST.BlockStatement?
@@ -401,43 +398,43 @@ function parse_if_expression(): AST.IfExpression?
 	if p_tok_type == tokens.ELSE then
 		next_token() -- Skip ELSE
 
-		if not expect_peek(tokens.LBRACE) then return end
+		if not expect_peek(tokens.LBRACE) then
+			return
+		end
 		alternate = parse_block_statement()
 	end
 
 	return {
 		node_type = AST.IF_EXPRESSION,
 
-		literal = start_tok_lit,
 		condition = condition,
 
 		consequence = consequence,
-		alternative = alternate
+		alternative = alternate,
 	}
 end
 
-function parse_index_expression(left: AST.Expression): AST.ArrayAssignmentExpression? | AST.IndexExpression?
-	local start_tok_lit = c_tok_lit
+function parse_index_expression(left: AST.Expression): AST.ArrayIndexAssignmentStatement? | AST.IndexExpression?
 	next_token()
 
 	local index = parse_expression(constants.LOWEST)
-	if not expect_peek(tokens.RBRACKET) or not index then return end
+	if not expect_peek(tokens.RBRACKET) or not index then
+		return
+	end
 
 	if p_tok_type == tokens.ASSIGN then
 		next_token()
-		return parse_array_index_assignment_statement(start_tok_lit, left, index)
+		return parse_array_index_assignment_statement(left, index)
 	end
 
 	return {
 		node_type = AST.INDEX_EXPRESSION,
-
-		literal = start_tok_lit,
 		left = left,
-		index = index
+		index = index,
 	} :: AST.IndexExpression
 end
 
-function parse_expression_list(end_tok_type: number): {AST.Expression}
+function parse_expression_list(end_tok_type: number): { AST.Expression }
 	local args = {}
 
 	if p_tok_type == end_tok_type then
@@ -457,13 +454,15 @@ function parse_expression_list(end_tok_type: number): {AST.Expression}
 		pos += 1
 	end
 
-	if not expect_peek(end_tok_type) then return {} end
+	if not expect_peek(end_tok_type) then
+		return {}
+	end
 
 	return args
 end
 
-function parse_function_parameters(): {AST.Identifier}
-	local identifiers: {AST.Identifier} = {}
+function parse_function_parameters(): { AST.Identifier }
+	local identifiers: { AST.Identifier } = {}
 
 	-- (), no params
 	if p_tok_type == tokens.RPAREN then
@@ -475,7 +474,7 @@ function parse_function_parameters(): {AST.Identifier}
 	identifiers[1] = {
 		node_type = AST.IDENTIFIER,
 
-		literal = c_tok_lit
+		value = c_tok_lit,
 	}
 
 	local pos = 2
@@ -487,23 +486,22 @@ function parse_function_parameters(): {AST.Identifier}
 		identifiers[pos] = {
 			node_type = AST.IDENTIFIER,
 
-			literal = c_tok_lit
+			value = c_tok_lit,
 		} :: AST.Identifier
 		pos += 1
 	end
 
-	if not expect_peek(tokens.RPAREN) then return {} end
+	if not expect_peek(tokens.RPAREN) then
+		return {}
+	end
 	return identifiers
 end
 
 function parse_call_expression(fn: AST.Expression): AST.CallExpression
-	local start_tok_lit = c_tok_lit
-
 	return {
 		node_type = AST.CALL_EXPRESSION,
 
 		func = fn,
-		literal = start_tok_lit,
 		arguments = parse_expression_list(tokens.RPAREN),
 	}
 end
@@ -527,16 +525,14 @@ prefix_fns = {
 	[tokens.LPAREN] = parse_grouped_expression,
 }
 
-infix_fns = {
-	[tokens.LPAREN] = parse_call_expression,
-	[tokens.LBRACKET] = parse_index_expression,
-}
-
 for precedence, _ in pairs(precedences) do
 	infix_fns[precedence] = parse_infix_expression
 end
 
-return function(token_types: { number }, token_literals: { string }): (AST.Program, {string})
+infix_fns[tokens.LPAREN] = parse_call_expression
+infix_fns[tokens.LBRACKET] = parse_index_expression :: any
+
+return function(token_types: { number }, token_literals: { string }): (AST.Program, { string })
 	-- Reset global variables
 	token_pos = 1
 	max_token_pos = #token_types
@@ -553,7 +549,7 @@ return function(token_types: { number }, token_literals: { string }): (AST.Progr
 	next_token()
 	next_token()
 
-	local statements: {AST.Statement} = {}
+	local statements: { AST.Statement } = {}
 
 	-- Parse until EOF
 	while c_tok_type ~= tokens.EOF do

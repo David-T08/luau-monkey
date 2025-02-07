@@ -9,7 +9,7 @@ local NODE_TYPES = table.freeze({
 	ASSIGNMENT_STATEMENT = 0x6,
 	BLOCK_STATEMENT = 0x7,
 	IDENTIFIER = 0x8,
-	POST_INCREMENT_IDENTIFIER = 0x9,
+	POST_INCREMENT_EXPRESSION = 0x9,
 	PREFIX_EXPRESSION = 0xA,
 	INFIX_EXPRESSION = 0xB,
 	INTEGER_LITERAL = 0xC,
@@ -20,7 +20,7 @@ local NODE_TYPES = table.freeze({
 	STRING_LITERAL = 0x11,
 	ARRAY_LITERAL = 0x12,
 	INDEX_EXPRESSION = 0x13,
-	ARRAY_INDEX_EXPRESSION = 0x14,
+	ARRAY_INDEX_ASSIGNMENT_STATEMENT = 0x14,
 	PROGRAM = 0x15,
 })
 
@@ -34,7 +34,7 @@ local NODE_TYPES_STRINGS = table.freeze({
 	ASSIGNMENT_STATEMENT = "ASSIGNMENT_STATEMENT",
 	BLOCK_STATEMENT = "BLOCK_STATEMENT",
 	IDENTIFIER = "IDENTIFIER",
-	POST_INCREMENT_IDENTIFIER = "POST_INCREMENT_IDENTIFIER",
+	POST_INCREMENT_EXPRESSION = "POST_INCREMENT_EXPRESSION",
 	PREFIX_EXPRESSION = "PREFIX_EXPRESSION",
 	INFIX_EXPRESSION = "INFIX_EXPRESSION",
 	INTEGER_LITERAL = "INTEGER_LITERAL",
@@ -45,7 +45,7 @@ local NODE_TYPES_STRINGS = table.freeze({
 	STRING_LITERAL = "STRING_LITERAL",
 	ARRAY_LITERAL = "ARRAY_LITERAL",
 	INDEX_EXPRESSION = "INDEX_EXPRESSION",
-	ARRAY_INDEX_EXPRESSION = "ARRAY_INDEX_EXPRESSION",
+	ARRAY_INDEX_ASSIGNMENT_STATEMENT = "ARRAY_INDEX_ASSIGNMENT_STATEMENT",
 	PROGRAM = "PROGRAM",
 })
 
@@ -55,31 +55,37 @@ export type Node = {node_type: number}
 -- The _stmt field is never used, it is simply for the typechecker to realize Statement != Expression
 export type Statement = Node & {_stmt: boolean?}
 
+-- let const? name = value
 export type LetStatement = Statement & {
-	literal: string,
-	name: Identifier,
+	name: Identifier, -- {literal = "x"}
 	value: Expression,
 	constant: boolean
 }
 
+-- return value
 export type ReturnStatement = Statement & {
-	literal: string,
 	return_value: Expression,
 }
 
 export type ExpressionStatement = Statement & {
-	literal: string,
 	expression: Expression
 }
 
+-- x = 2
 export type AssignmentStatement = Statement & {
-	literal: string,
 	name: Identifier,
 	value: Expression
 }
 
+-- arr[index] = value
+export type ArrayIndexAssignmentStatement = Statement & {
+	array: Expression,
+	index: Expression,
+	value: Expression,
+}
+
+-- {statements}
 export type BlockStatement = Statement & {
-	literal: string,
 	statements: { Statement },
 }
 
@@ -87,77 +93,75 @@ export type BlockStatement = Statement & {
 -- The _expr field is never used, it is simply for the typechecker to realize Statement != Expression
 export type Expression = Node & {_expr: boolean?}
 
+-- foobar, xyz
 export type Identifier = Expression & {
-	literal: string,
+	value: string,
 }
 
-export type PostIncremementIdentifier = Expression & {
-	literal: string,
+-- x++; x--;
+export type PostIncrementExpression = Expression & {
+	left: Expression,
 	operator: string,
 }
 
+-- ++x; !true
 export type PrefixExpression = Expression & {
-	literal: string,
 	operator: string,
 	right: Expression
 }
 
+-- x + a; "str" - "str"
 export type InfixExpression = Expression & {
-	literal: string,
 	left: Expression,
 	operator: string,
 	right: Expression,
 }
 
 -- Literal Expressions
+-- 1,2,...
 export type IntegerLiteral = Expression & {
 	value: number
 }
 
+-- value
 export type BooleanLiteral = Expression & {
 	value: boolean,
 }
 
+-- "value"
 export type StringLiteral = Expression & {
 	value: string,
 }
 
+-- [elements]
+export type ArrayLiteral = Expression	& {
+	elements: {Expression}
+}
+
+-- fn(params) {body}
 export type FunctionLiteral = Expression & {
-	literal: string,
 	parameters: { Identifier },
 	body: BlockStatement,
 }
 
-export type ArrayLiteral = Expression	& {
-	literal: string,
-	elements: {Expression}
-}
-
+-- if (cond) {consequence} else {alternative}
 export type IfExpression = Expression & {
-	literal: string,
 	condition: Expression,
 
 	consequence: BlockStatement,
 	alternative: BlockStatement?
 }
 
+-- call(args)
 export type CallExpression = Expression & {
-	literal: string,
 	func: Expression,
 	arguments: {Expression},
 }
 
+-- arr[index]
 export type IndexExpression = Expression & {
-	literal: string,
 	left: Expression,
 	index: Expression
-}
-
-export type ArrayAssignmentExpression = Expression & {
-	literal: string,
-	array: Expression,
-	index: Expression,
-	value: Expression
 }
 
 -- Program
