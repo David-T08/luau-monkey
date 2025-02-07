@@ -28,7 +28,8 @@ local NODE_TYPES = table.freeze({
 	ARRAY_LITERAL = 0x12,
 	INDEX_EXPRESSION = 0x13,
 	ARRAY_INDEX_EXPRESSION = 0x14,
-	PROGRAM = 0x15,
+	HASH_LITERAL = 0x15,
+	PROGRAM = 0x16,
 })
 
 local NODE_TYPES_STRINGS = table.freeze({
@@ -53,8 +54,19 @@ local NODE_TYPES_STRINGS = table.freeze({
 	[NODE_TYPES.ARRAY_LITERAL] = "ARRAY_LITERAL",
 	[NODE_TYPES.INDEX_EXPRESSION] = "INDEX_EXPRESSION",
 	[NODE_TYPES.ARRAY_INDEX_EXPRESSION] = "ARRAY_INDEX_EXPRESSION",
+	[NODE_TYPES.HASH_LITERAL] = "HASH_LITERAL",
 	[NODE_TYPES.PROGRAM] = "PROGRAM",
 })
+
+function dictionary_len(dict): number
+	local len = 0
+
+	for _ in pairs(dict) do
+		len += 1
+	end
+
+	return len
+end
 
 function expr_typeof(expr: AST.Node | any): string
 	local typ = type(expr)
@@ -147,7 +159,7 @@ return {
 			}
 
 			for _, test in ipairs(inputs) do
-				local program, errs = parse(lex(test[1]))
+				local program = parse(lex(test[1]))
 
 				assert.is.truthy(program, "Invalid Program!")
 				assert.are_equal(1, #program.statements, "Expected 1 statement!")
@@ -165,7 +177,7 @@ return {
 			let 838383;
 		]]
 
-			local program, errs = parse(lex(input))
+			local _, errs = parse(lex(input))
 
 			assert.are_equal(2, #errs, "Expected 2 errors, got " .. #errs .. "!")
 		end),
@@ -177,7 +189,7 @@ return {
 			return 993322;
 		]]
 
-			local program, errs = parse(lex(input))
+			local program = parse(lex(input))
 
 			assert.is.truthy(program, "Invalid Program!")
 			assert.are_equal(3, #program.statements, "Expected 3 statements!")
@@ -217,7 +229,7 @@ return {
 		it("can do identifier expressions", function()
 			local input = "foobar;"
 
-			local program, errs = parse(lex(input))
+			local program = parse(lex(input))
 			expect("PROGRAM", program, 3)
 
 			assert.are_equal(1, #program.statements, "Expected 1 statement!")
@@ -338,7 +350,7 @@ return {
 			}
 
 			for _, test in ipairs(tests) do
-				local program, errs = parse(lex(test[1]))
+				local program = parse(lex(test[1]))
 
 				expect("EXPRESSION_STATEMENT", program.statements[1], 3)
 				assert.are_equal(format(program), test[2])
@@ -423,7 +435,6 @@ return {
 			local bodyStmt = body[1] :: AST.ExpressionStatement
 			expect("EXPRESSION_STATEMENT", bodyStmt)
 
-			---@cast bodyStmt ExpressionStatement
 			TestInfixExpression(bodyStmt.expression, "x", "+", "y")
 		end),
 
@@ -548,6 +559,35 @@ return {
 
 			assert.are_equal(#errs, 0, `Expected 0 errors, got {#errs}!\nErrors:\n{stdio.format(errs)}`)
 			assert.are_equal(#program.statements, 1, "Expected 1 program statement!")
+		end),
+
+		it("can parse hash literals", function()
+			local input = '{"one": 1, "two": 2, "three": 3}'
+			local program, errs = parse(lex(input))
+
+			assert.are_equal(#errs, 0, `Expected 0 errors, got {#errs}!\nErrors:\n{stdio.format(errs)}`)
+			assert.are_equal(#program.statements, 1, "Expected 1 program statement!")
+
+			local stmt = program.statements[1] :: AST.ExpressionStatement
+			expect("EXPRESSION_STATEMENT", stmt)
+
+			local hash = stmt.expression :: AST.HashLiteral
+			expect("HASH_LITERAL", hash)
+
+			local length = dictionary_len(hash.pairs)
+			assert.are_equal(length, 3, `Expected 3 pairs, got {length}`)
+
+			local expected = {
+				["one"] = 1,
+				["two"] = 2,
+				["three"] = 3,
+			}
+
+			for gotkey, gotvalue in pairs(hash.pairs) do
+				expect("STRING_LITERAL", gotkey, 3)
+
+				testIntegerLiteral(gotvalue, expected[(gotkey :: AST.StringLiteral).value])
+			end
 		end),
 	},
 }

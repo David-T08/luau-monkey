@@ -21,7 +21,8 @@ local NODE_TYPES = table.freeze({
 	ARRAY_LITERAL = 0x12,
 	INDEX_EXPRESSION = 0x13,
 	ARRAY_INDEX_ASSIGNMENT_STATEMENT = 0x14,
-	PROGRAM = 0x15,
+	HASH_LITERAL = 0x15,
+	PROGRAM = 0x16,
 })
 
 local NODE_TYPES_STRINGS = table.freeze({
@@ -46,6 +47,7 @@ local NODE_TYPES_STRINGS = table.freeze({
 	ARRAY_LITERAL = "ARRAY_LITERAL",
 	INDEX_EXPRESSION = "INDEX_EXPRESSION",
 	ARRAY_INDEX_ASSIGNMENT_STATEMENT = "ARRAY_INDEX_ASSIGNMENT_STATEMENT",
+	HASH_LITERAL = "HASH_LITERAL",
 	PROGRAM = "PROGRAM",
 })
 
@@ -136,6 +138,11 @@ export type StringLiteral = Expression & {
 -- [elements]
 export type ArrayLiteral = Expression	& {
 	elements: {Expression}
+}
+
+-- {key: value}
+export type HashLiteral = Expression & {
+	pairs: {[Expression]: Expression}
 }
 
 -- fn(params) {body}

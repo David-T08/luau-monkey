@@ -138,6 +138,29 @@ function parse_array_literal(): AST.ArrayLiteral
 	}
 end
 
+function parse_hash_literal(): AST.HashLiteral?
+	local hash_pairs: {[AST.Expression]: AST.Expression} = {}
+
+	while p_tok_type ~= tokens.RBRACE do
+		next_token()
+		local key = parse_expression(constants.LOWEST)
+
+		if not expect_peek(tokens.COLON) then return end
+		next_token() -- Skip colon
+
+		local value = parse_expression(constants.LOWEST)
+		hash_pairs[key :: AST.Expression] = value :: AST.Expression
+
+		if p_tok_type ~= tokens.RBRACE and not expect_peek(tokens.COMMA) then return end
+	end
+
+	if not expect_peek(tokens.RBRACE) then return end
+	return {
+		node_type = AST.HASH_LITERAL,
+		pairs = hash_pairs
+	}
+end
+
 function parse_string_literal(): AST.StringLiteral
 	return {
 		node_type = AST.STRING_LITERAL,
@@ -523,6 +546,7 @@ prefix_fns = {
 	[tokens.LBRACKET] = parse_array_literal,
 
 	[tokens.LPAREN] = parse_grouped_expression,
+	[tokens.LBRACE] = parse_hash_literal,
 }
 
 for precedence, _ in pairs(precedences) do
