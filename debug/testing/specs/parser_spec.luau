@@ -349,8 +349,8 @@ return {
 			local input = "if (x < y) { x }"
 			local program, errs = parse(lex(input))
 
-			assert.are_equal(0, #errs, `Expected 0 errors, got {#errs}!\nErrors:\n{stdio.format(errs)}`)
-			assert.are_equal(1, #program.statements, "Expected 1 program statement!")
+			assert.are_equal(#errs, 0, `Expected 0 errors, got {#errs}!\nErrors:\n{stdio.format(errs)}`)
+			assert.are_equal(#program.statements, 1, "Expected 1 program statement!")
 
 			local stmt = program.statements[1]
 			expect("EXPRESSION_STATEMENT", stmt)
@@ -362,7 +362,7 @@ return {
 
 			TestInfixExpression(_expr.condition, "x", "<", "y")
 
-			assert.are_equal(1, #_expr.consequence.statements, "Expected 1 consequence statement!")
+			assert.are_equal(#_expr.consequence.statements, 1, "Expected 1 consequence statement!")
 
 			local consequence = _expr.consequence.statements[1]
 			expect("EXPRESSION_STATEMENT", consequence)
@@ -374,8 +374,8 @@ return {
 			local input = "if (x < y) { x } else { y }"
 			local program, errs = parse(lex(input))
 
-			assert.are_equal(0, #errs, `Expected 0 errors, got {#errs}!\nErrors:\n{stdio.format(errs)}`)
-			assert.are_equal(1, #program.statements, "Expected 1 program statement!")
+			assert.are_equal(#errs, 0, `Expected 0 errors, got {#errs}!\nErrors:\n{stdio.format(errs)}`)
+			assert.are_equal(#program.statements, 1, "Expected 1 program statement!")
 
 			local stmt = program.statements[1]
 			expect("EXPRESSION_STATEMENT", stmt)
@@ -387,7 +387,7 @@ return {
 
 			TestInfixExpression(_expr.condition, "x", "<", "y")
 
-			assert.are_equal(1, #_expr.consequence.statements, "Expected 1 consequence statement!")
+			assert.are_equal(#_expr.consequence.statements, 1, "Expected 1 consequence statement!")
 
 			local consequence = _expr.consequence.statements[1] :: AST.ExpressionStatement
 			expect("EXPRESSION_STATEMENT", consequence)
@@ -398,6 +398,156 @@ return {
 			expect("EXPRESSION_STATEMENT", alternative)
 
 			testIdentifier(alternative.expression, "y")
+		end),
+
+		it("can do literal function parsing", function()
+			local input = "fn(x, y) { x + y; }"
+			local program, errs = parse(lex(input))
+
+			assert.are_equal(#errs, 0, `Expected 0 errors, got {#errs}!\nErrors:\n{stdio.format(errs)}`)
+			assert.are_equal(#program.statements, 1, "Expected 1 program statement!")
+
+			local exprStmt = program.statements[1] :: AST.ExpressionStatement
+			expect("EXPRESSION_STATEMENT", exprStmt)
+
+			local fnLiteral = exprStmt.expression :: AST.FunctionLiteral
+			expect("FUNCTION_LITERAL", fnLiteral)
+
+			assert.are_equal(#fnLiteral.parameters, 2, "Expected 2 function parameters!")
+			TestLiteralExpression(fnLiteral.parameters[1], "x")
+			TestLiteralExpression(fnLiteral.parameters[2], "y")
+
+			local body = fnLiteral.body.statements
+			assert.are_equal(#body, 1, "Expected 1 function body statement!")
+
+			local bodyStmt = body[1] :: AST.ExpressionStatement
+			expect("EXPRESSION_STATEMENT", bodyStmt)
+
+			---@cast bodyStmt ExpressionStatement
+			TestInfixExpression(bodyStmt.expression, "x", "+", "y")
+		end),
+
+		it("can parse function parameters", function()
+			local inputs = {
+				{ input = "fn() {}", expectedParams = {} },
+				{ input = "fn(x) {}", expectedParams = { "x" } },
+				{ input = "fn(x, y, z) {}", expectedParams = { "x", "y", "z" } },
+			}
+
+			for _, test in ipairs(inputs) do
+				local program, errs = parse(lex(test.input))
+
+				assert.are_equal(#errs, 0, `Expected 0 errors, got {#errs}!\nErrors:\n{stdio.format(errs)}`)
+				assert.are_equal(#program.statements, 1, "Expected 1 program statement!")
+
+				local exprStmt = program.statements[1] :: AST.ExpressionStatement
+				expect("EXPRESSION_STATEMENT", exprStmt)
+
+				local fnLiteral = exprStmt.expression :: AST.FunctionLiteral
+				expect("FUNCTION_LITERAL", fnLiteral)
+
+				assert.are_equal(
+					#fnLiteral.parameters,
+					#test.expectedParams,
+					`Expected {#test.expectedParams} function parameters, got {#fnLiteral.parameters}`
+				)
+
+				for i, ident in ipairs(test.expectedParams) do
+					TestLiteralExpression(fnLiteral.parameters[i], ident)
+				end
+			end
+		end),
+
+		it("can do call expressions", function()
+			local input = "add(1, 2 * 3, 4 + 5);"
+
+			local program, errs = parse(lex(input))
+
+			assert.are_equal(#errs, 0, `Expected 0 errors, got {#errs}!\nErrors:\n{stdio.format(errs)}`)
+			assert.are_equal(#program.statements, 1, "Expected 1 program statement!")
+
+			local exprStmt = program.statements[1] :: AST.ExpressionStatement
+			expect("EXPRESSION_STATEMENT", exprStmt)
+
+			local callExpr = exprStmt.expression :: AST.CallExpression
+			expect("CALL_EXPRESSION", callExpr)
+
+			testIdentifier(callExpr.func, "add")
+
+			assert.are_equal(#callExpr.arguments, 3, `Expected 3 call arguments, got {#callExpr.arguments}`)
+
+			TestLiteralExpression(callExpr.arguments[1], 1)
+			TestInfixExpression(callExpr.arguments[2], 2, "*", 3)
+			TestInfixExpression(callExpr.arguments[3], 4, "+", 5)
+		end),
+
+		it("can do strings", function()
+			local input = '"Hello, world!"'
+			local program, errs = parse(lex(input))
+
+			assert.are_equal(#errs, 0, `Expected 0 errors, got {#errs}!\nErrors:\n{stdio.format(errs)}`)
+			assert.are_equal(#program.statements, 1, "Expected 1 program statement!")
+
+			local stmt = program.statements[1] :: AST.ExpressionStatement
+			expect("EXPRESSION_STATEMENT", stmt)
+
+			local expr = stmt.expression :: AST.StringLiteral
+			expect("STRING_LITERAL", expr)
+
+			assert.are_equal(
+				expr.value,
+				"Hello, world!",
+				string.format("Expected string.value to be %s, got %s", input, expr.value)
+			)
+		end),
+
+		it("can do arrays", function()
+			local input = "[1, 2*2, 3+3]"
+
+			local program, errs = parse(lex(input))
+
+			assert.are_equal(#errs, 0, `Expected 0 errors, got {#errs}!\nErrors:\n{stdio.format(errs)}`)
+			assert.are_equal(#program.statements, 1, "Expected 1 program statement!")
+
+			local stmt = program.statements[1] :: AST.ExpressionStatement
+			expect("EXPRESSION_STATEMENT", stmt)
+
+			local expr = stmt.expression :: AST.ArrayLiteral
+			expect("ARRAY_LITERAL", expr)
+
+			assert.are_equal(#expr.elements, 3, `Expected 3 array elements, got {#expr.elements}`)
+
+			TestLiteralExpression(expr.elements[1], 1)
+			TestInfixExpression(expr.elements[2], 2, "*", 2)
+			TestInfixExpression(expr.elements[3], 3, "+", 3)
+		end),
+
+		it("can do array indexing", function()
+			local input = "myArray[1 + 1]"
+
+			local program, errs = parse(lex(input))
+
+			assert.are_equal(#errs, 0, `Expected 0 errors, got {#errs}!\nErrors:\n{stdio.format(errs)}`)
+			assert.are_equal(#program.statements, 1, "Expected 1 program statement!")
+
+			local stmt = program.statements[1] :: AST.ExpressionStatement
+			expect("EXPRESSION_STATEMENT", stmt)
+
+			local expr = stmt.expression :: AST.IndexExpression
+			expect("INDEX_EXPRESSION", expr)
+			---@cast expr IndexExpression
+
+			testIdentifier(expr.left, "myArray")
+			TestInfixExpression(expr.index, 1, "+", 1)
+		end),
+
+		it("can parse constants", function()
+			local input = "let const x = 5"
+
+			local program, errs = parse(lex(input))
+
+			assert.are_equal(#errs, 0, `Expected 0 errors, got {#errs}!\nErrors:\n{stdio.format(errs)}`)
+			assert.are_equal(#program.statements, 1, "Expected 1 program statement!")
 		end),
 	},
 }
