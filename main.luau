@@ -2,6 +2,8 @@ local stdio = require("@lune/stdio")
 local lexer = require("components/lexer")
 local parser = require("components/parser")
 
+local format = require("debug/format")
+
 print("Monkey 0.1.0 RLPL")
 while true do
 	local input = stdio.prompt("text", ">>")
@@ -13,6 +15,9 @@ while true do
 	local token_types, literals = lexer(input)
 
 	print(`Lexer took {os.clock() - lex_t}s to lex {#input} characters; {#token_types} tokens`)
+	for i = 1, #token_types do
+		-- print(`\{literal: {literals[i]}, type: {token_types[i]}\}`)
+	end
 
 	local parse_t = os.clock()
 
@@ -23,5 +28,5 @@ while true do
 		print(`Errors: \n  {table.concat(errs, "\n  ")}`)
 	end
 	
-	print(stdio.format(program))
+	print(format(program))
 end
