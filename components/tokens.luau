@@ -46,6 +46,9 @@ local optimized_tokens = table.freeze({
 	DECREMENT = 0x21,
 
 	STRING = 0x22,
+	OCTAL_INT = 0x23,
+	BINARY_INT = 0x24,
+	HEX_INT = 0x25
 })
 
 -- Simply for printing tokens, to easier understand
@@ -98,6 +101,9 @@ local debug_tokens = table.freeze({
 	DECREMENT = "DECREMENT",
 
 	STRING = "STRING",
+	OCTAL_INT = "OCTAL_INT",
+	BINARY_INT = "BINARY_INT",
+	HEX_INT = "HEX_INT"
 })
 
 return optimized_tokens

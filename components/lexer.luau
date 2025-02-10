@@ -179,16 +179,62 @@ return function(input: string): ({ number }, { string })
 				continue
 			elseif cur_byte >= 48 and cur_byte <= 57 then -- Numeric [0-9]
 				local start = read_pos - 1
+				local start_byte = cur_byte
+
+				local mode = 0
 
 				while true do
 					cur_char, read_pos, cur_byte = read_char(input, read_pos, length)
-					if not (cur_byte >= 48 and cur_byte <= 57) then
-						break
+
+					-- Hexadecimal (0X/x), Octal (0O/o), Binary (0B/b)
+					if start_byte == 48 and read_pos - 2 == start then
+						-- Hexadecimal
+						if cur_byte == 88 or cur_byte == 120 then -- x or X
+							mode = 1
+							cur_char, read_pos, cur_byte = read_char(input, read_pos, length)
+						elseif cur_byte == 79 or cur_byte == 111 then -- o or O
+							mode = 2
+							cur_char, read_pos, cur_byte = read_char(input, read_pos, length)
+						elseif cur_byte == 66 or cur_byte == 98 then -- b or B
+							mode = 3
+							cur_char, read_pos, cur_byte = read_char(input, read_pos, length)
+						end
+					end
+
+					if cur_byte == 95 then -- Ignore underscores
+						cur_char, read_pos, cur_byte = read_char(input, read_pos, length)
+					end
+
+					if mode == 1 then -- Hexadecimal digits (0-F)
+						if not ((cur_byte >= 48 and cur_byte <= 57) or (cur_byte >= 65 and cur_byte <= 70) or (cur_byte >= 97 and cur_byte <= 102)) then 
+							break
+						end
+					elseif mode == 2 then -- Octal digits (0-7)
+						if not (cur_byte >= 48 and cur_byte <= 55) then
+							break
+						end
+					elseif mode == 3 then -- Binary digits (0 or 1)
+						if not (cur_byte == 48 or cur_byte == 49) then
+							break
+						end
+					else -- Decimal digits (0-9)
+						if not (cur_byte >= 48 and cur_byte <= 57) then
+							break
+						end
 					end
 				end
 
-				insert(types, tokens.INT)
-				insert(literals, input:sub(start, read_pos - 2))
+				if mode == 0 then
+					insert(types, tokens.INT)
+				elseif mode == 1 then
+					insert(types, tokens.HEX_INT)
+				elseif mode == 2 then
+					insert(types, tokens.OCTAL_INT)
+				elseif mode == 3 then
+					insert(types, tokens.BINARY_INT)
+				end
+				local filtered = input:sub(start, read_pos - 2):gsub("_", ""):gsub("^0[bBxXoO]", "") -- Remove underscores and prefixes
+				insert(literals, filtered)
 
 				continue
 			else

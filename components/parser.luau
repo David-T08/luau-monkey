@@ -178,7 +178,15 @@ function parse_boolean_literal(): AST.BooleanLiteral
 end
 
 function parse_integer_literal(): AST.IntegerLiteral?
-	local int = tonumber(c_tok_lit)
+	local radix = 10
+	if c_tok_type == tokens.HEX_INT then
+		radix = 16
+	elseif c_tok_type == tokens.OCTAL_INT then
+		radix = 8
+	elseif c_tok_type == tokens.BINARY_INT then
+		radix = 2
+	end
+	local int = tonumber(c_tok_lit, radix)
 	if not int then
 		table.insert(errors, `Could not parse {c_tok_lit} as integer`)
 		return
@@ -532,6 +540,9 @@ end
 prefix_fns = {
 	[tokens.IDENT] = parse_identifier,
 	[tokens.INT] = parse_integer_literal,
+	[tokens.OCTAL_INT] = parse_integer_literal,
+	[tokens.BINARY_INT] = parse_integer_literal,
+	[tokens.HEX_INT] = parse_integer_literal,
 	[tokens.BANG] = parse_prefix_expression,
 	[tokens.MINUS] = parse_prefix_expression,
 	[tokens.INCREMENT] = parse_prefix_expression,
