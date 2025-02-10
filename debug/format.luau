@@ -1,6 +1,7 @@
 --!strict
 -- Formats a program into a string
 local AST = require("../components/ast")
+local object = require("../components/evaluator/object")
 
 function statementToString(stmt: AST.Statement): string
 	if stmt.node_type == AST.LET_STATEMENT then
@@ -10,7 +11,9 @@ function statementToString(stmt: AST.Statement): string
 	elseif stmt.node_type == AST.EXPRESSION_STATEMENT then
 		return expressionToString((stmt :: AST.ExpressionStatement).expression)
 	elseif stmt.node_type == AST.ASSIGNMENT_STATEMENT then
-		return `{(stmt :: AST.AssignmentStatement).name.value} = {expressionToString((stmt :: AST.AssignmentStatement).value)}`
+		return `{(stmt :: AST.AssignmentStatement).name.value} = {expressionToString(
+			(stmt :: AST.AssignmentStatement).value
+		)}`
 	elseif stmt.node_type == AST.ARRAY_INDEX_ASSIGNMENT_STATEMENT then
 		local _stmt = stmt :: AST.ArrayIndexAssignmentStatement
 		return `{expressionToString(_stmt.array)}[{expressionToString(_stmt.index)}] = {expressionToString(_stmt.value)}`
@@ -28,11 +31,11 @@ function statementToString(stmt: AST.Statement): string
 end
 
 function expressionToString(expr: AST.Expression): string
-	if 
-		expr.node_type == AST.BOOLEAN_LITERAL or
-		expr.node_type == AST.STRING_LITERAL or 
-		expr.node_type == AST.INTEGER_LITERAL or
-		expr.node_type == AST.IDENTIFIER 
+	if
+		expr.node_type == AST.BOOLEAN_LITERAL
+		or expr.node_type == AST.STRING_LITERAL
+		or expr.node_type == AST.INTEGER_LITERAL
+		or expr.node_type == AST.IDENTIFIER
 	then
 		return `{(expr :: AST.IntegerLiteral).value}`
 	elseif expr.node_type == AST.ARRAY_LITERAL then
@@ -40,7 +43,7 @@ function expressionToString(expr: AST.Expression): string
 		for _, element in ipairs((expr :: AST.ArrayLiteral).elements) do
 			table.insert(out, expressionToString(element))
 		end
-		return `[{table.concat(out, ', ')}]`
+		return `[{table.concat(out, ", ")}]`
 	elseif expr.node_type == AST.FUNCTION_LITERAL then
 		local params = {}
 		for _, element in ipairs((expr :: AST.FunctionLiteral).parameters) do
@@ -49,7 +52,7 @@ function expressionToString(expr: AST.Expression): string
 		return `fn({table.concat(params, ", ")}) \{{statementToString((expr :: AST.FunctionLiteral).body)}\}`
 	elseif expr.node_type == AST.IF_EXPRESSION then
 		local _expr = expr :: AST.IfExpression
-		local out = {'if ', expressionToString(_expr.condition), " { ", statementToString(_expr.consequence) }
+		local out = { "if ", expressionToString(_expr.condition), " { ", statementToString(_expr.consequence) }
 
 		if _expr.alternative then
 			table.insert(out, ` } else \{ {statementToString(_expr.alternative)}`)
@@ -64,13 +67,17 @@ function expressionToString(expr: AST.Expression): string
 		end
 		return `{expressionToString((expr :: AST.CallExpression).func)}({table.concat(args, ", ")})`
 	elseif expr.node_type == AST.INDEX_EXPRESSION then
-		return `({expressionToString((expr :: AST.IndexExpression).left)}[{expressionToString((expr :: AST.IndexExpression).index)}])`
+		return `({expressionToString((expr :: AST.IndexExpression).left)}[{expressionToString(
+			(expr :: AST.IndexExpression).index
+		)}])`
 	elseif expr.node_type == AST.POST_INCREMENT_EXPRESSION then
 		return `({expressionToString((expr :: AST.PostIncrementExpression).left)}{(expr :: AST.PostIncrementExpression).operator})`
 	elseif expr.node_type == AST.PREFIX_EXPRESSION then
 		return `({(expr :: AST.PrefixExpression).operator}{expressionToString((expr :: AST.PrefixExpression).right)})`
 	elseif expr.node_type == AST.INFIX_EXPRESSION then
-		return `({expressionToString((expr :: AST.InfixExpression).left)} {(expr :: AST.InfixExpression).operator} {expressionToString((expr :: AST.InfixExpression).right)})`
+		return `({expressionToString((expr :: AST.InfixExpression).left)} {(expr :: AST.InfixExpression).operator} {expressionToString(
+			(expr :: AST.InfixExpression).right
+		)})`
 	end
 
 	return `UNKNOWN EXPRESSION??`
@@ -86,6 +93,38 @@ local function convertProgramToString(program: AST.Program)
 	return table.concat(str)
 end
 
-return function(program: AST.Program, asTree: boolean?): string
-	return convertProgramToString(program)
+local function format(what: AST.Program | object.BaseObject<unknown>, asTree: boolean?): string
+	if (what :: any).node_type then
+		return convertProgramToString(what :: AST.Program)
+	elseif (what :: any).obj_type then
+		local obj = what :: object.BaseObject<any>
+
+		if
+			obj.obj_type == object.kinds.BOOLEAN
+			or obj.obj_type == object.kinds.STRING
+			or obj.obj_type == object.kinds.NUMBER
+			or obj.obj_type == object.kinds.ERROR
+			or obj.obj_type == object.kinds.RETURN
+		then
+			return `{obj.value}`
+		elseif obj.obj_type == object.kinds.ARRAY then
+			local out = {}
+
+			for _, v in ipairs(obj.value :: { object.BaseObject<unknown> }) do
+				table.insert(out, format(v, asTree))
+			end
+
+			return `[{table.concat(out, ', ')}]`
+		elseif obj.obj_type == object.kinds.BUILTIN_FUNCTION then
+			return `builtin function`
+		elseif obj.obj_type == object.kinds.FUNCTION then
+			return `function`
+		elseif obj.obj_type == object.kinds.NULL then
+			return "NULL"
+		end
+	end
+
+	return ""
 end
+
+return format
