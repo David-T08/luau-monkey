@@ -136,4 +136,4 @@ local function runTests(...: { describe: string, tests: { testRequest } })
 	end
 end
 
-runTests(require("specs/lexer_spec"), require("specs/parser_spec"))
+runTests(require("specs/lexer_spec"), require("specs/parser_spec"), require("specs/evaluator_spec"))

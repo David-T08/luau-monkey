@@ -2,9 +2,13 @@ local stdio = require("@lune/stdio")
 local lexer = require("components/lexer")
 local parser = require("components/parser")
 
+local eval = require("components/evaluator/evaluator")
+local object = require('components/evaluator/object')
+
 local format = require("debug/format")
 
 print("Monkey 0.1.0 RLPL")
+local env = object.Environment.new()
 while true do
 	local input = stdio.prompt("text", ">>")
 	if input == "exit" then
@@ -28,5 +32,8 @@ while true do
 		print(`Errors: \n  {table.concat(errs, "\n  ")}`)
 	end
 	
-	print(format(program))
+	local evaluated = eval(program, env)
+	if evaluated then
+		print("Evaluated:", evaluated.value)
+	end
 end
