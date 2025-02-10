@@ -152,4 +152,14 @@ return {
 			}
 		end,
 	},
+
+	clock = {
+		obj_type = object.kinds.BUILTIN_FUNCTION,
+		value = function()
+			return {
+				obj_type = object.kinds.NUMBER,
+				value = os.clock()
+			}
+		end
+	}
 }
