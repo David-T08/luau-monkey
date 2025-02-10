@@ -408,11 +408,11 @@ function eval(node: AST.Node, env: object.Environment): object.BaseObject<unknow
 		end
 
 		local evaluated = eval(fun.body, extended_env)
+
 		if evaluated.obj_type == object.kinds.RETURN then
 			return evaluated.value
 		end
-
-		-- It errored
+		
 		return evaluated
 	end
 

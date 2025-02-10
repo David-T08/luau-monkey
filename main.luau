@@ -18,7 +18,7 @@ while true do
 	local lex_t = os.clock()
 	local token_types, literals = lexer(input)
 
-	print(`Lexer took {os.clock() - lex_t}s to lex {#input} characters; {#token_types} tokens`)
+	-- print(`Lexer took {os.clock() - lex_t}s to lex {#input} characters; {#token_types} tokens`)
 	for i = 1, #token_types do
 		-- print(`\{literal: {literals[i]}, type: {token_types[i]}\}`)
 	end
@@ -26,7 +26,7 @@ while true do
 	local parse_t = os.clock()
 
 	local program, errs = parser(token_types, literals)
-	print(`Parser took {os.clock() - parse_t}s to parse {#token_types} tokens`)
+	-- print(`Parser took {os.clock() - parse_t}s to parse {#token_types} tokens`)
 
 	if #errs > 0 then
 		print(`Errors: \n  {table.concat(errs, "\n  ")}`)
@@ -34,6 +34,6 @@ while true do
 	
 	local evaluated = eval(program, env)
 	if evaluated then
-		print("Evaluated:", evaluated.value)
+		print(format(evaluated))
 	end
 end
