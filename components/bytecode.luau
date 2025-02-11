@@ -4,13 +4,18 @@ export type Instruction = buffer
 export type Opcode = number
 
 local opcodes = table.freeze({
-	OP_CONSTANT = 0x0
+	OP_CONSTANT = 0x0,
+	OP_ADD = 0x1
 })
 
 local definitions = table.freeze({
 	[opcodes.OP_CONSTANT] = {
 		name = "OpConstant",
 		widths = {2}
+	},
+	[opcodes.OP_ADD] = {
+		name = "OpAdd",
+		widths = {}
 	}
 })
 

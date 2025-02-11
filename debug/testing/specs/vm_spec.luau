@@ -53,7 +53,7 @@ local function test_integer_object(expected: number, got: object.BaseObject<numb
 end
 
 local function test_expected_object(expected: any, got: object.BaseObject<unknown>)
-	local typ = typeof(expect)
+	local typ = typeof(expected)
 	if typ == "number" then
 		test_integer_object(expected, got :: any)
 	end
@@ -81,7 +81,7 @@ return {
 			local tests: {VMTestCase} = {
 				{input = "1", expected = 1},
 				{input = "2", expected = 2},
-				{input = "1 + 2", expected = 2}
+				{input = "1 + 2", expected = 3}
 			}
 
 			run_vm_tests(tests)

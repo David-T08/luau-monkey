@@ -88,6 +88,13 @@ local function compile(node: AST.Node): (string?, {
 		if err then
 			return err
 		end
+
+		local operator = (node :: AST.InfixExpression).operator
+		if operator == "+" then
+			emit(opcodes.OP_ADD)
+		else
+			return `unknown operator {operator}`
+		end
 	elseif node.node_type == AST.INTEGER_LITERAL then
 		local obj: object.BaseObject<number> = {
 			obj_type = object.kinds.NUMBER,

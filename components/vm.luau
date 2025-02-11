@@ -12,10 +12,11 @@ local sp = 0
 local constants: {object.BaseObject<unknown>} = {}
 local stack: {object.BaseObject<unknown>} = {}
 
-local function top(): object.BaseObject<unknown>?
-	if sp == 0 then return end
+local function swap_endianess(number: number): number
+	local low = bit32.band(number, 0xFF)
+	local high = bit32.band(bit32.rshift(number, 8), 0xFF)
 
-	return stack[sp - 1]
+	return bit32.bor(bit32.lshift(low, 8), high)
 end
 
 local function push(obj: object.BaseObject<unknown>): string?
@@ -43,7 +44,7 @@ return function(consts: {object.BaseObject<unknown>}, instructions: bytecode.Ins
 		local op = buffer.readu8(instructions, ip)
 
 		if op == opcodes.OP_CONSTANT then
-			const_index = buffer.readu16(instructions, ip + 1)
+			const_index = swap_endianess(buffer.readu16(instructions, ip + 1)) -- BE to LE
 			ip += 2
 
 			local err = push(constants[const_index + 1])
