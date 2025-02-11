@@ -79,7 +79,7 @@ end
 
 local function test_instructions(expected: {bytecode.Instruction}, got: bytecode.Instruction)	
 	local concatted = concat_instructions(expected)
-	assert.are_equal(buffer.len(got), buffer.len(concatted), `Instruction has wrong length, got: $1, expected: $2`, 4)
+	assert.are_equal(buffer.len(got), buffer.len(concatted), `Instruction has wrong length, got: $1, expected: $2\n\nGot:\n{format(got)}\nExpected:\n{format(concatted)}`, 4)
 
 	for byte = 1, buffer.len(concatted) do
 		assert.are_equal(
@@ -139,7 +139,37 @@ return {
 						make(opcodes.OP_CONSTANT, 1),
 						make(opcodes.OP_POP),
 					}
-				}
+				},
+				{
+					input = "1 - 2",
+					expected_constants = {1,2},
+					expected_instructions = {
+						make(opcodes.OP_CONSTANT, 0),
+						make(opcodes.OP_CONSTANT, 1),
+						make(opcodes.OP_SUB),
+						make(opcodes.OP_POP)
+					}
+				},
+				{
+					input = "1 / 2",
+					expected_constants = {1,2},
+					expected_instructions = {
+						make(opcodes.OP_CONSTANT, 0),
+						make(opcodes.OP_CONSTANT, 1),
+						make(opcodes.OP_DIV),
+						make(opcodes.OP_POP)
+					}
+				},
+				{
+					input = "1 * 2",
+					expected_constants = {1,2},
+					expected_instructions = {
+						make(opcodes.OP_CONSTANT, 0),
+						make(opcodes.OP_CONSTANT, 1),
+						make(opcodes.OP_MUL),
+						make(opcodes.OP_POP)
+					}
+				},
 			}
 
 			run_compiler_tests(tests)

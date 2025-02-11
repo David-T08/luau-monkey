@@ -9,8 +9,8 @@ local opcodes = bytecode.opcodes
 local STACK_SIZE = 2048
 local sp = 0
 
-local constants: {object.BaseObject<unknown>} = {}
-local stack: {object.BaseObject<unknown>} = {}
+local constants: { object.BaseObject<unknown> } = {}
+local stack: { object.BaseObject<unknown> } = {}
 
 -- Holds the last element on the stack before it is popped
 local last_element: object.BaseObject<unknown>? = nil
@@ -34,19 +34,52 @@ local function push(obj: object.BaseObject<unknown>): string?
 end
 
 local function pop(): object.BaseObject<unknown>
-	local obj = stack[sp-1]
-	stack[sp-1] = nil
+	local obj = stack[sp - 1]
+	stack[sp - 1] = nil
 	sp -= 1
 
 	last_element = obj
 	return obj
 end
 
-return function(consts: {object.BaseObject<unknown>}, instructions: bytecode.Instruction): (string?, typeof(last_element))
+local function execute_binary_operation(op: number): string?
+	local right = pop()
+	local left = pop()
+
+	if left.obj_type == object.kinds.NUMBER and right.obj_type == object.kinds.NUMBER then
+		local result = 0
+
+		if op == opcodes.OP_ADD then
+			result = (left :: object.BaseObject<number>).value + (right :: object.BaseObject<number>).value
+		elseif op == opcodes.OP_SUB then
+			result = (left :: object.BaseObject<number>).value - (right :: object.BaseObject<number>).value
+		elseif op == opcodes.OP_DIV then
+			result = (left :: object.BaseObject<number>).value / (right :: object.BaseObject<number>).value
+		elseif op == opcodes.OP_MUL then
+			result = (left :: object.BaseObject<number>).value * (right :: object.BaseObject<number>).value
+		else
+			return `unknown integer operator {op}`
+		end
+
+		push({
+			obj_type = object.kinds.NUMBER,
+			value = result,
+		} :: object.BaseObject<number>)
+	else
+		return `unsupported types for binary operation {left.obj_type} {right.obj_type}`
+	end
+
+	return
+end
+
+return function(
+	consts: { object.BaseObject<unknown> },
+	instructions: bytecode.Instruction
+): (string?, typeof(last_element))
 	sp = 0
 	stack = table.create(STACK_SIZE)
 	constants = consts
-	last_element = nil 
+	last_element = nil
 
 	local len = buffer.len(instructions)
 
@@ -61,16 +94,11 @@ return function(consts: {object.BaseObject<unknown>}, instructions: bytecode.Ins
 			ip += 2
 
 			local err = push(constants[const_index + 1])
-			if err then return err, last_element end
-		elseif op == opcodes.OP_ADD then
-			local right = pop()
-			local left = pop()
-
-			local result = (left :: object.BaseObject<number>).value + (right :: object.BaseObject<number>).value
-			push({
-				obj_type = object.kinds.NUMBER,
-				value = result
-			} :: object.BaseObject<number>)
+			if err then
+				return err, last_element
+			end
+		elseif op == opcodes.OP_ADD or op == opcodes.OP_SUB or op == opcodes.OP_DIV or op == opcodes.OP_MUL then
+			execute_binary_operation(op)
 		elseif op == opcodes.OP_POP then
 			pop()
 		end

@@ -8,11 +8,6 @@ local vm = require("../../../components/vm")
 local assert, it = require("../globals")
 local format = require("../../format")
 
-type VMTestCase = {
-	input: string,
-	expected: any
-}
-
 local OBJ_TYPES_STRINGS = table.freeze({
 	[object.kinds.STRING] = "STRING",
 	[object.kinds.NUMBER] = "NUMBER",
@@ -59,9 +54,9 @@ local function test_expected_object(expected: any, got: object.BaseObject<unknow
 	end
 end
 
-local function run_vm_tests(tests: {VMTestCase})
+local function run_vm_tests(tests)
 	for _, test in ipairs(tests) do
-		local program = parse(lex(test.input))
+		local program = parse(lex(test[1]))
 
 		local err, compiled = compile(program)
 		assert.are_equal(err, nil, `Failed to compile: $1`)
@@ -69,7 +64,7 @@ local function run_vm_tests(tests: {VMTestCase})
 		local vm_err, stack_top = vm(compiled.constants, compiled.instructions)
 		assert.are_equal(vm_err, nil, `VM failed to run: $1`)
 
-		test_expected_object(test.expected, stack_top)
+		test_expected_object(test[2], stack_top)
 	end
 end
 
@@ -77,13 +72,22 @@ return {
 	describe = "the vm",
 	tests = {
 		it("can do integer arithmetic", function()
-			local tests: {VMTestCase} = {
-				{input = "1", expected = 1},
-				{input = "2", expected = 2},
-				{input = "1 + 2", expected = 3}
+			local tests= {
+				{"1", 1 },
+				{"2", 2 },
+				{"1 + 2", 3 },
+				{"1 - 2", -1 },
+				{"1 * 2", 2 },
+				{"4 / 2", 2 },
+				{"50 / 2 * 2 + 10 - 5", 55 },
+				{"5 + 5 + 5 + 5 - 10", 10 },
+				{"2 * 2 * 2 * 2 * 2", 32 },
+				{"5 * 2 + 10", 20 },
+				{"5 + 2 * 10", 25 },
+				{"5 * (2 + 10)", 60 },
 			}
 
 			run_vm_tests(tests)
-		end)
-	}
+		end),
+	},
 }

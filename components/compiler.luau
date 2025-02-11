@@ -19,7 +19,9 @@ local _buffer_new = buffer.create
 local debugging = false
 
 local function log(...: any)
-	if not debugging then return end
+	if not debugging then
+		return
+	end
 	print(...)
 end
 
@@ -38,7 +40,7 @@ local function alloc(bytes)
 end
 
 local function emit(op: number, ...: number)
-	log(`Emitting {op}, operands: {table.concat({...}, ", ")}`)
+	log(`Emitting {op}, operands: {table.concat({ ... }, ", ")}`)
 	local instruction = make(op, ...)
 	local len = buffer.len(instruction)
 	log(`  Generated instruction of length {len}`)
@@ -93,6 +95,12 @@ local function compile(node: AST.Node): (string?, {
 		local operator = (node :: AST.InfixExpression).operator
 		if operator == "+" then
 			emit(opcodes.OP_ADD)
+		elseif operator == "-" then
+			emit(opcodes.OP_SUB)
+		elseif operator == "/" then
+			emit(opcodes.OP_DIV)
+		elseif operator == "*" then
+			emit(opcodes.OP_MUL)
 		else
 			return `unknown operator {operator}`
 		end
