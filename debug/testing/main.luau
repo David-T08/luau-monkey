@@ -140,5 +140,6 @@ runTests(
 	-- require("specs/lexer_spec"), 
 	-- require("specs/parser_spec"), 
 	-- require("specs/evaluator_spec"),
-	require("specs/bytecode_spec")
+	require("specs/bytecode_spec"),
+	require("specs/compiler_spec")
 )
