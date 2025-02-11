@@ -3,12 +3,15 @@ local lexer = require("components/lexer")
 local parser = require("components/parser")
 
 local eval = require("components/evaluator/evaluator")
-local object = require('components/evaluator/object')
+-- local object = require('components/evaluator/object')
+
+local compile = require("components/compiler")
+local vm = require("components/vm")
 
 local format = require("debug/format")
 
 print("Monkey 0.1.0 RLPL")
-local env = object.Environment.new()
+
 while true do
 	local input = stdio.prompt("text", ">>")
 	if input == "exit" then
@@ -32,8 +35,17 @@ while true do
 		print(`Errors: \n  {table.concat(errs, "\n  ")}`)
 	end
 	
-	local evaluated = eval(program, env)
-	if evaluated then
-		print(format(evaluated))
+	local c_err, compiled = compile(program)
+	if c_err then
+		print(`Compilation failed: {c_err}`)
+		continue
 	end
+
+	local vm_err, stack_top = vm(compiled.constants, compiled.instructions)
+	if vm_err then
+		print(`VM failed: {vm_err}`)
+		continue
+	end
+
+	print(format(stack_top))
 end

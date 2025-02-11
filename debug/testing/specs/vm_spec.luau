@@ -48,8 +48,8 @@ local function expect(what, expr, err_lvl)
 end
 
 local function test_integer_object(expected: number, got: object.BaseObject<number>)
-	expect("NUMBER", got, 4)
-	assert.are_equal(got.value, expected, `Expected value to be $2, got $1`, 4)
+	expect("NUMBER", got, 6)
+	assert.are_equal(got.value, expected, `Expected value to be $2, got $1`, 6)
 end
 
 local function test_expected_object(expected: any, got: object.BaseObject<unknown>)
@@ -66,10 +66,9 @@ local function run_vm_tests(tests: {VMTestCase})
 		local err, compiled = compile(program)
 		assert.are_equal(err, nil, `Failed to compile: $1`)
 
-		local vm_err, stack, sp = vm(compiled.constants, compiled.instructions)
+		local vm_err, stack_top = vm(compiled.constants, compiled.instructions)
 		assert.are_equal(vm_err, nil, `VM failed to run: $1`)
 
-		local stack_top = stack[sp - 1]
 		test_expected_object(test.expected, stack_top)
 	end
 end

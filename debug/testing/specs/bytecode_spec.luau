@@ -13,7 +13,8 @@ return {
 			-- Opcode, operands, expected
 			local tests = {
 				{ opcodes.OP_CONSTANT, { 65534 }, { opcodes.OP_CONSTANT, 255, 254 } },
-				{ opcodes.OP_ADD, {}, {opcodes.OP_ADD}}
+				{ opcodes.OP_ADD, {}, {opcodes.OP_ADD}},
+				{ opcodes.OP_POP, {}, {opcodes.OP_POP}}
 			}
 
 			for _, test in ipairs(tests) do

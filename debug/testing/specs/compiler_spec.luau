@@ -126,7 +126,18 @@ return {
 					expected_instructions = {
 						make(opcodes.OP_CONSTANT, 0),
 						make(opcodes.OP_CONSTANT, 1),
-						make(opcodes.OP_ADD)
+						make(opcodes.OP_ADD),
+						make(opcodes.OP_POP)
+					}
+				},
+				{
+					input = "1; 2",
+					expected_constants = {1, 2},
+					expected_instructions = {
+						make(opcodes.OP_CONSTANT, 0),
+						make(opcodes.OP_POP),
+						make(opcodes.OP_CONSTANT, 1),
+						make(opcodes.OP_POP),
 					}
 				}
 			}

@@ -5,7 +5,8 @@ export type Opcode = number
 
 local opcodes = table.freeze({
 	OP_CONSTANT = 0x0,
-	OP_ADD = 0x1
+	OP_ADD = 0x1,
+	OP_POP = 0x2
 })
 
 local definitions = table.freeze({
@@ -15,6 +16,10 @@ local definitions = table.freeze({
 	},
 	[opcodes.OP_ADD] = {
 		name = "OpAdd",
+		widths = {}
+	},
+	[opcodes.OP_POP] = {
+		name = "OpPop",
 		widths = {}
 	}
 })

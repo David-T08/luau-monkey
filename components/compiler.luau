@@ -76,6 +76,7 @@ local function compile(node: AST.Node): (string?, {
 		if err then
 			return err
 		end
+		emit(opcodes.OP_POP) -- Clean up old value from stack
 	elseif node.node_type == AST.INFIX_EXPRESSION then
 		reset = false
 		local err = compile((node :: AST.InfixExpression).left)
