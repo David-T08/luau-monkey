@@ -67,7 +67,7 @@ local function table_eq(table1, table2)
 end
 
 globals.are = {
-	same = function(got, expected, custom_err: string?, err_lvl: number?)
+	same = function(got: any, expected: any, custom_err: string?, err_lvl: number?)
 		local result
 		if type(got) == "table" then
 			result = table_eq(got, expected)
@@ -80,6 +80,7 @@ globals.are = {
 
 		if not result then
 			if custom_err then
+				custom_err = custom_err:gsub("$2", tostring(expected)):gsub("$1", tostring(got))
 				error(`[!!FAILURE!!][!!{file}!!{line}!!]{custom_err}`)
 			else
 				error(
@@ -92,7 +93,7 @@ globals.are = {
 	end,
 }
 globals.are.equal = globals.are.same
-globals.are_equal = globals.are.equal
+globals.are_equal = globals.are.same
 
 globals.is = {
 	truthy = function(value: any, custom_err: string?, err_lvl: number?)

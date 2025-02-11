@@ -3,6 +3,16 @@
 local AST = require("../components/ast")
 local object = require("../components/evaluator/object")
 
+local stdio = require("@lune/stdio")
+
+type BufferFormattingConfig = {
+	offset: number?,
+	size: number?,
+
+	ascii: boolean?,
+	color: boolean?
+}
+
 function statementToString(stmt: AST.Statement): string
 	if stmt.node_type == AST.LET_STATEMENT then
 		return `let {(stmt :: AST.LetStatement).name.value} = {expressionToString((stmt :: AST.LetStatement).value)}`
@@ -83,19 +93,97 @@ function expressionToString(expr: AST.Expression): string
 	return `UNKNOWN EXPRESSION??`
 end
 
-local function convertProgramToString(program: AST.Program)
-	local str = {}
+local function format_buffer(b: buffer, config: BufferFormattingConfig)
+	local length = buffer.len(b) -- Assuming buffer is a userdata with len method
+	local ascii = config.ascii == nil and true or config.ascii
+	local offset = config.offset or 0
+	local size = config.size or (length - offset)
+	local can_color = config.color == nil and true or config.color
 
-	for _, stmt in ipairs(program.statements) do
-		table.insert(str, statementToString(stmt))
+	local function color(str: string | number, color: stdio.Color): string
+		if not can_color then return str :: any end
+		return stdio.color(color) .. str .. stdio.color("reset")
 	end
 
-	return table.concat(str)
+	local function style(str: string | number, style: stdio.Style): string
+		if not can_color then
+			return str :: any
+		end
+		return stdio.style(style) .. str .. stdio.style("reset")
+	end
+
+	if size < 0 or offset + size > length then
+		error(string.format("Size out of bounds! max: %d, got: %d", length, size))
+	end
+
+	local final = {
+		`Address    {color("00 01 02 03 04 05 06 07  08 09 0A 0B 0C 0D 0E 0F", "blue")}{ascii and "  ASCII" or ""}`,
+	}
+
+	for line_start = 0, size - 1, 16 do
+		-- local line_end = math.min(line_start + 15, size - 1)
+		local hex_part = {}
+		local ascii_part = {}
+
+		for i = 0, 15 do
+			local pos = line_start + i
+			if pos < size then
+				local byte = buffer.readu8(b, offset + pos)
+				hex_part[i + 1] = style(string.format("%02X", byte), if byte == 0 then "dim" else "reset")
+				-- Handle ASCII part
+				if ascii then
+					if byte >= 0x20 and byte <= 0x7E then
+						ascii_part[i + 1] = string.char(byte)
+					else
+						ascii_part[i + 1] = style('.', "dim")
+					end
+				end
+			else
+				hex_part[i + 1] = "  " -- Pad missing bytes with spaces
+				if ascii then
+					ascii_part[i + 1] = " "
+				end
+			end
+		end
+
+		-- Split hex into two groups of 8 bytes
+		local first_half = table.concat(hex_part, " ", 1, 8)
+		local second_half = table.concat(hex_part, " ", 9, 16)
+		local hex_line = first_half .. "  " .. second_half
+
+		-- Format the address for this line
+		local address = offset + line_start
+		local address_str = color(string.format("%08X:", address), "blue")
+
+		-- Build the line
+		local line
+		if ascii then
+			local ascii_str = table.concat(ascii_part)
+			line = string.format("%s  %s  %s", address_str, hex_line, ascii_str)
+		else
+			line = string.format("%s  %s", address_str, hex_line)
+		end
+
+		table.insert(final, line)
+	end
+
+	return table.concat(final, "\n")
 end
 
-local function format(what: AST.Program | object.BaseObject<unknown>, asTree: boolean?): string
+local function format(what: any, config: BufferFormattingConfig?): string
+	local typ = typeof(what)
+	if typ == "buffer" then
+		return format_buffer(what, config or {})
+	end
+
 	if (what :: any).node_type then
-		return convertProgramToString(what :: AST.Program)
+		local str = {}
+
+		for _, stmt in ipairs((what :: AST.Program).statements) do
+			table.insert(str, statementToString(stmt))
+		end
+
+		return table.concat(str)
 	elseif (what :: any).obj_type then
 		local obj = what :: object.BaseObject<any>
 
@@ -114,7 +202,7 @@ local function format(what: AST.Program | object.BaseObject<unknown>, asTree: bo
 				table.insert(out, format(v, asTree))
 			end
 
-			return `[{table.concat(out, ', ')}]`
+			return `[{table.concat(out, ", ")}]`
 		elseif obj.obj_type == object.kinds.BUILTIN_FUNCTION then
 			return `builtin function`
 		elseif obj.obj_type == object.kinds.FUNCTION then
