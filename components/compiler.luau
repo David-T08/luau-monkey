@@ -112,6 +112,12 @@ local function compile(node: AST.Node): (string?, {
 
 		table.insert(constants, obj)
 		emit(opcodes.OP_CONSTANT, #constants - 1)
+	elseif node.node_type == AST.BOOLEAN_LITERAL then
+		if (node :: AST.BooleanLiteral).value == true then
+			emit(opcodes.OP_TRUE)
+		else
+			emit(opcodes.OP_FALSE)
+		end
 	end
 
 	reset = true

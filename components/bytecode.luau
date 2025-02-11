@@ -11,6 +11,9 @@ local opcodes = table.freeze({
 	OP_SUB = 0x3,
 	OP_DIV = 0x4,
 	OP_MUL = 0x5,
+
+	OP_TRUE = 0x6,
+	OP_FALSE = 0x7
 })
 
 local definitions = table.freeze({
@@ -37,6 +40,15 @@ local definitions = table.freeze({
 	},
 	[opcodes.OP_MUL] = {
 		name = "OpAdd",
+		widths = {}
+	},
+
+	[opcodes.OP_TRUE] = {
+		name = "OpTrue",
+		widths = {}
+	},
+	[opcodes.OP_FALSE] = {
+		name = "OpFalse",
 		widths = {}
 	},
 })

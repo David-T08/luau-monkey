@@ -33,18 +33,24 @@ local function push(obj: object.BaseObject<unknown>): string?
 	return
 end
 
-local function pop(): object.BaseObject<unknown>
+local function pop(): (string?, object.BaseObject<unknown>)
 	local obj = stack[sp - 1]
+	if obj == nil then
+		return `stack underflow`, {} :: any
+	end
+
 	stack[sp - 1] = nil
 	sp -= 1
 
 	last_element = obj
-	return obj
+	return nil, obj
 end
 
 local function execute_binary_operation(op: number): string?
-	local right = pop()
-	local left = pop()
+	local r_err, right = pop()
+	local l_err, left = pop()
+
+	if l_err or r_err then return l_err or r_err end
 
 	if left.obj_type == object.kinds.NUMBER and right.obj_type == object.kinds.NUMBER then
 		local result = 0
@@ -95,12 +101,23 @@ return function(
 
 			local err = push(constants[const_index + 1])
 			if err then
-				return err, last_element
+				return err
 			end
 		elseif op == opcodes.OP_ADD or op == opcodes.OP_SUB or op == opcodes.OP_DIV or op == opcodes.OP_MUL then
 			execute_binary_operation(op)
+		elseif op == opcodes.OP_TRUE then
+			local err = push(object.constants[true])
+			if err then
+				return err
+			end
+		elseif op == opcodes.OP_FALSE then
+			local err = push(object.constants[false])
+			if err then
+				return err
+			end
 		elseif op == opcodes.OP_POP then
-			pop()
+			local err = pop()
+			if err then return err end
 		end
 
 		ip += 1

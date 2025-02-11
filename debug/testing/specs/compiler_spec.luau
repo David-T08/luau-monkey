@@ -174,5 +174,28 @@ return {
 
 			run_compiler_tests(tests)
 		end),
+
+		it("can do boolean expressions", function()
+			local tests: {CompilerTest} = {
+				{
+					input = "true",
+					expected_constants = {},
+					expected_instructions = {
+						make(opcodes.OP_TRUE),
+						make(opcodes.OP_POP)
+					}
+				},
+				{
+					input = "false",
+					expected_constants = {},
+					expected_instructions = {
+						make(opcodes.OP_FALSE),
+						make(opcodes.OP_POP)
+					}
+				}
+			}
+
+			run_compiler_tests(tests)
+		end)
 	},
 }

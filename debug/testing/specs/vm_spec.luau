@@ -42,15 +42,14 @@ local function expect(what, expr, err_lvl)
 	assert.are_equal(expr_typeof(expr), what, `Expected object to be an $2, got $1`, err_lvl)
 end
 
-local function test_integer_object(expected: number, got: object.BaseObject<number>)
-	expect("NUMBER", got, 6)
-	assert.are_equal(got.value, expected, `Expected value to be $2, got $1`, 6)
-end
-
 local function test_expected_object(expected: any, got: object.BaseObject<unknown>)
 	local typ = typeof(expected)
 	if typ == "number" then
-		test_integer_object(expected, got :: any)
+		expect("NUMBER", got, 5)
+		assert.are_equal(got.value, expected, `Expected value to be $2, got $1`, 5)
+	elseif typ == "boolean" then
+		expect("BOOLEAN", got, 5)
+		assert.are_equal(got.value, expected, `Expected value to be $2, got $1`, 5)
 	end
 end
 
@@ -89,5 +88,14 @@ return {
 
 			run_vm_tests(tests)
 		end),
+
+		it("can do boolean expressions", function()
+			local tests = {
+				{"true", true},
+				{"false", false}
+			}
+
+			run_vm_tests(tests)
+		end)
 	},
 }
