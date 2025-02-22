@@ -27,7 +27,7 @@ function statementToString(stmt: AST.Statement): string
 	elseif stmt.node_type == AST.ARRAY_INDEX_ASSIGNMENT_STATEMENT then
 		local _stmt = stmt :: AST.ArrayIndexAssignmentStatement
 		return `{expressionToString(_stmt.array)}[{expressionToString(_stmt.index)}] = {expressionToString(_stmt.value)}`
-	elseif stmt.node_type == AST.BLOCK_STATEMENT then
+	elseif stmt.node_type == AST.BLOCK_STATEMENT or stmt.node_type == AST.PROGRAM then
 		local out = {}
 
 		for _, inner in ipairs((stmt :: AST.BlockStatement).statements) do
@@ -37,7 +37,7 @@ function statementToString(stmt: AST.Statement): string
 		return table.concat(out)
 	end
 
-	return `UNKNOWN STATEMENT??`
+	return `UNKNOWN`
 end
 
 function expressionToString(expr: AST.Expression): string
@@ -90,7 +90,7 @@ function expressionToString(expr: AST.Expression): string
 		)})`
 	end
 
-	return `UNKNOWN EXPRESSION??`
+	return `UNKNOWN`
 end
 
 local function format_buffer(b: buffer, config: BufferFormattingConfig)
@@ -176,14 +176,11 @@ local function format(what: any, config: BufferFormattingConfig?): string
 		return format_buffer(what, config or {})
 	end
 
-	if (what :: any).node_type then
-		local str = {}
+	if (what :: any).node_type then 
+    local a = statementToString(what :: any)
+    if a ~= "UNKNOWN" then return a end
 
-		for _, stmt in ipairs((what :: AST.Program).statements) do
-			table.insert(str, statementToString(stmt))
-		end
-
-		return table.concat(str)
+    return expressionToString(what :: any)
 	elseif (what :: any).obj_type then
 		local obj = what :: object.BaseObject<any>
 
@@ -199,7 +196,7 @@ local function format(what: any, config: BufferFormattingConfig?): string
 			local out = {}
 
 			for _, v in ipairs(obj.value :: { object.BaseObject<unknown> }) do
-				table.insert(out, format(v, asTree))
+				table.insert(out, format(v))
 			end
 
 			return `[{table.concat(out, ", ")}]`
