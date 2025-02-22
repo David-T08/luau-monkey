@@ -57,8 +57,8 @@ local function expect(what, expr, err_lvl)
 end
 
 local function test_integer_object(expected: number, got: object.BaseObject<number>)
-	expect("NUMBER", got, 4)
-	assert.are_equal(got.value, expected, `Expected value to be $2, got $1`, 4)
+	expect("NUMBER", got, 5)
+	assert.are_equal(got.value, expected, `Expected value to be $2, got $1`, 5)
 end
 
 local function concat_instructions(instructions: {bytecode.Instruction}): bytecode.Instruction
@@ -192,7 +192,67 @@ return {
 						make(opcodes.OP_FALSE),
 						make(opcodes.OP_POP)
 					}
-				}
+				},
+				{
+					input = "1 > 2",
+					expected_constants = {1,2},
+					expected_instructions = {
+						make(opcodes.OP_CONSTANT, 0),
+						make(opcodes.OP_CONSTANT, 1),
+						make(opcodes.OP_GREATER_THAN),
+						make(opcodes.OP_POP)
+					}
+				},
+				{
+					input = "1 < 2",
+					expected_constants = {2, 1},
+					expected_instructions = {
+						make(opcodes.OP_CONSTANT, 0),
+						make(opcodes.OP_CONSTANT, 1),
+						make(opcodes.OP_GREATER_THAN),
+						make(opcodes.OP_POP)
+					}
+				},
+				{
+					input = "1 == 2",
+					expected_constants = {1,2},
+					expected_instructions = {
+						make(opcodes.OP_CONSTANT, 0),
+						make(opcodes.OP_CONSTANT, 1),
+						make(opcodes.OP_EQUAL),
+						make(opcodes.OP_POP)
+					}
+				},
+				{
+					input = "1 != 2",
+					expected_constants = {1,2},
+					expected_instructions = {
+						make(opcodes.OP_CONSTANT, 0),
+						make(opcodes.OP_CONSTANT, 1),
+						make(opcodes.OP_NOT_EQUAL),
+						make(opcodes.OP_POP)
+					}
+				},
+				{
+					input = "true == false",
+					expected_constants = {},
+					expected_instructions = {
+						make(opcodes.OP_TRUE),
+						make(opcodes.OP_FALSE),
+						make(opcodes.OP_EQUAL),
+						make(opcodes.OP_POP)
+					}
+				},
+				{
+					input = "true != false",
+					expected_constants = {},
+					expected_instructions = {
+						make(opcodes.OP_TRUE),
+						make(opcodes.OP_FALSE),
+						make(opcodes.OP_NOT_EQUAL),
+						make(opcodes.OP_POP)
+					}
+				},
 			}
 
 			run_compiler_tests(tests)

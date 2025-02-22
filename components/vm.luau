@@ -67,15 +67,42 @@ local function execute_binary_operation(op: number): string?
 			return `unknown integer operator {op}`
 		end
 
-		push({
+		return push({
 			obj_type = object.kinds.NUMBER,
 			value = result,
 		} :: object.BaseObject<number>)
 	else
 		return `unsupported types for binary operation {left.obj_type} {right.obj_type}`
 	end
+end
 
-	return
+function execute_comparison(op: number): string?
+  local underflow, right = pop()
+  if underflow then return underflow end
+  local underflow, left = pop()
+	if underflow then
+		return underflow
+	end
+
+  if left.obj_type == object.kinds.NUMBER and right.obj_type == object.kinds.NUMBER then
+		if op == opcodes.OP_EQUAL then
+			return push(object.constants[left.value == right.value])
+		elseif op == opcodes.OP_NOT_EQUAL then
+			return push(object.constants[left.value ~= right.value])
+    elseif op == opcodes.OP_GREATER_THAN then
+      return push(object.constants[(left.value :: any) > (right.value :: any)])
+    elseif op == opcodes.OP_GREATER_THAN_EQUAL then
+      return push(object.constants[(left.value :: any) >= (right.value :: any)])
+		end
+  elseif left.obj_type == object.kinds.BOOLEAN and right.obj_type == object.kinds.BOOLEAN then
+    if op == opcodes.OP_EQUAL then
+      return push(object.constants[left.value == right.value])
+    elseif op == opcodes.OP_NOT_EQUAL then
+			return push(object.constants[left.value ~= right.value])
+    end
+  end
+
+  return `unknown operator: {op} ({left.obj_type} {right.obj_type})`
 end
 
 return function(
@@ -118,6 +145,11 @@ return function(
 		elseif op == opcodes.OP_POP then
 			local err = pop()
 			if err then return err end
+    elseif op == opcodes.OP_GREATER_THAN or op == opcodes.OP_GREATER_THAN_EQUAL or op == opcodes.OP_EQUAL or op == opcodes.OP_NOT_EQUAL then
+			local err = execute_comparison(op)
+			if err then
+				return err
+			end
 		end
 
 		ip += 1

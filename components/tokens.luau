@@ -48,7 +48,10 @@ local optimized_tokens = table.freeze({
 	STRING = 0x22,
 	OCTAL_INT = 0x23,
 	BINARY_INT = 0x24,
-	HEX_INT = 0x25
+	HEX_INT = 0x25,
+
+	GTE = 0x26, -- >=
+	LTE = 0x27 -- <=
 })
 
 -- Simply for printing tokens, to easier understand
@@ -103,7 +106,10 @@ local debug_tokens = table.freeze({
 	STRING = "STRING",
 	OCTAL_INT = "OCTAL_INT",
 	BINARY_INT = "BINARY_INT",
-	HEX_INT = "HEX_INT"
+	HEX_INT = "HEX_INT",
+
+	GTE = "GTE",
+	LTE = "LTE"
 })
 
 return optimized_tokens

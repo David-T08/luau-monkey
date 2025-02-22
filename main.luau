@@ -10,7 +10,7 @@ local vm = require("components/vm")
 
 local format = require("debug/format")
 
-print("Monkey 0.1.0 RLPL")
+print("Monkey 0.3.5 REPL")
 
 while true do
 	local input = stdio.prompt("text", ">>")
@@ -41,11 +41,17 @@ while true do
 		continue
 	end
 
+	local debug_constants = {}
+	for i, const in ipairs(compiled.constants) do
+		table.insert(debug_constants, `[{i}] = {format(const)}`)
+	end
+	print(`Compiled:\n{format(compiled.instructions)}\n\nConstants:\n {table.concat(debug_constants, '\n ')}\n`)
+
 	local vm_err, stack_top = vm(compiled.constants, compiled.instructions)
 	if vm_err then
 		print(`VM failed: {vm_err}`)
 		continue
 	end
 
-	print(format(stack_top))
+	print(`Stack top: {format(stack_top)}`)
 end

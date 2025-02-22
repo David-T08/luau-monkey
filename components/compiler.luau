@@ -7,6 +7,7 @@ local format = require("../debug/format")
 
 local make = bytecode.make
 local opcodes = bytecode.opcodes
+local definitons = bytecode.definitions
 
 local constants = {}
 local instructions = buffer.create(0)
@@ -16,10 +17,10 @@ local offset = 0
 local _buffer_copy = buffer.copy
 local _buffer_new = buffer.create
 
-local debugging = false
+local _debug = false
 
 local function log(...: any)
-	if not debugging then
+	if not _debug then
 		return
 	end
 	print(...)
@@ -40,7 +41,9 @@ local function alloc(bytes)
 end
 
 local function emit(op: number, ...: number)
-	log(`Emitting {op}, operands: {table.concat({ ... }, ", ")}`)
+  local ops = table.concat({...}, ", ")
+
+	log(`Emitting {op} ({definitons[op].name}){if #ops > 0 then `; operands: \{{ops}}` else ""}`)
 	local instruction = make(op, ...)
 	local len = buffer.len(instruction)
 	log(`  Generated instruction of length {len}`)
@@ -53,46 +56,54 @@ local function emit(op: number, ...: number)
 end
 
 local reset = true
-local function compile(node: AST.Node): (string?, {
+local function compile(node: AST.Node, debugging: boolean?): (string?, {
 	instructions: bytecode.Instruction,
 	constants: { object.BaseObject<unknown> },
 }?)
-	log(`Compiling {AST_STR[node.node_type]}`)
-	if reset then
+  _debug = debugging or false
+  if reset then
+		log(`\nNEW COMPILATION`)
 		constants = {}
 		instructions = _buffer_new(0)
 		size, offset = 0, 0
 	end
+	log(`Compiling {AST_STR[node.node_type]}`)
 
 	if node.node_type == AST.PROGRAM then
 		for _, stmt in ipairs((node :: AST.Program).statements) do
 			reset = false
-			local err = compile(stmt)
+			local err = compile(stmt, debugging)
 			if err then
 				return err
 			end
 		end
 	elseif node.node_type == AST.EXPRESSION_STATEMENT then
 		reset = false
-		local err = compile((node :: AST.ExpressionStatement).expression)
+		local err = compile((node :: AST.ExpressionStatement).expression, debugging)
 		if err then
 			return err
 		end
 		emit(opcodes.OP_POP) -- Clean up old value from stack
 	elseif node.node_type == AST.INFIX_EXPRESSION then
-		reset = false
-		local err = compile((node :: AST.InfixExpression).left)
-		if err then
-			return err
-		end
-
-		reset = false
-		err = compile((node :: AST.InfixExpression).right)
-		if err then
-			return err
-		end
-
 		local operator = (node :: AST.InfixExpression).operator
+		local swap = operator == "<" or operator == "<="
+
+		log(` Operator: {operator}, swap: {swap}`)
+		log(` Node.left: {format((node :: AST.InfixExpression).left)}`)
+		log(` Node.right: {format((node :: AST.InfixExpression).right)}`)
+
+		reset = false
+		local err = compile((node :: AST.InfixExpression)[if swap then "right" else "left"], debugging)
+		if err then
+			return err
+		end
+
+		reset = false
+		err = compile((node :: AST.InfixExpression)[if swap then "left" else "right"], debugging)
+		if err then
+			return err
+		end
+
 		if operator == "+" then
 			emit(opcodes.OP_ADD)
 		elseif operator == "-" then
@@ -101,6 +112,14 @@ local function compile(node: AST.Node): (string?, {
 			emit(opcodes.OP_DIV)
 		elseif operator == "*" then
 			emit(opcodes.OP_MUL)
+		elseif operator == ">" or operator == "<" then
+			emit(opcodes.OP_GREATER_THAN)
+		elseif operator == ">=" or operator == "<=" then
+			emit(opcodes.OP_GREATER_THAN_EQUAL)
+		elseif operator == "==" then
+			emit(opcodes.OP_EQUAL)
+		elseif operator == "!=" then
+			emit(opcodes.OP_NOT_EQUAL)
 		else
 			return `unknown operator {operator}`
 		end
@@ -110,6 +129,7 @@ local function compile(node: AST.Node): (string?, {
 			value = (node :: AST.IntegerLiteral).value,
 		}
 
+    log(` Inserted {obj.value}`)
 		table.insert(constants, obj)
 		emit(opcodes.OP_CONSTANT, #constants - 1)
 	elseif node.node_type == AST.BOOLEAN_LITERAL then

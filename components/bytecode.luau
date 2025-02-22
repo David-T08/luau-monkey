@@ -13,7 +13,13 @@ local opcodes = table.freeze({
 	OP_MUL = 0x5,
 
 	OP_TRUE = 0x6,
-	OP_FALSE = 0x7
+	OP_FALSE = 0x7,
+
+	 -- We dont need less than, since we can reorder code 1 < 2 -> 2 > 1
+	OP_EQUAL = 0x8,
+	OP_NOT_EQUAL = 0x9,
+	OP_GREATER_THAN = 0xA,
+	OP_GREATER_THAN_EQUAL = 0xB
 })
 
 local definitions = table.freeze({
@@ -31,15 +37,15 @@ local definitions = table.freeze({
 		widths = {}
 	},
 	[opcodes.OP_SUB] = {
-		name = "OpAdd",
+		name = "OpSub",
 		widths = {}
 	},
 	[opcodes.OP_DIV] = {
-		name = "OpAdd",
+		name = "OpDiv",
 		widths = {}
 	},
 	[opcodes.OP_MUL] = {
-		name = "OpAdd",
+		name = "OpMul",
 		widths = {}
 	},
 
@@ -49,6 +55,23 @@ local definitions = table.freeze({
 	},
 	[opcodes.OP_FALSE] = {
 		name = "OpFalse",
+		widths = {}
+	},
+
+	[opcodes.OP_EQUAL] = {
+		name = "OpEqual",
+		widths = {}
+	},
+	[opcodes.OP_NOT_EQUAL] = {
+		name = "OpNotEqual",
+		widths = {}
+	},
+	[opcodes.OP_GREATER_THAN] = {
+		name = "OpGreaterThan",
+		widths = {}
+	},
+	[opcodes.OP_GREATER_THAN_EQUAL] = {
+		name = "OpGreaterThanEqual",
 		widths = {}
 	},
 })

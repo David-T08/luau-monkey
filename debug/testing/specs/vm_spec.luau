@@ -71,19 +71,19 @@ return {
 	describe = "the vm",
 	tests = {
 		it("can do integer arithmetic", function()
-			local tests= {
-				{"1", 1 },
-				{"2", 2 },
-				{"1 + 2", 3 },
-				{"1 - 2", -1 },
-				{"1 * 2", 2 },
-				{"4 / 2", 2 },
-				{"50 / 2 * 2 + 10 - 5", 55 },
-				{"5 + 5 + 5 + 5 - 10", 10 },
-				{"2 * 2 * 2 * 2 * 2", 32 },
-				{"5 * 2 + 10", 20 },
-				{"5 + 2 * 10", 25 },
-				{"5 * (2 + 10)", 60 },
+			local tests = {
+				{ "1", 1 },
+				{ "2", 2 },
+				{ "1 + 2", 3 },
+				{ "1 - 2", -1 },
+				{ "1 * 2", 2 },
+				{ "4 / 2", 2 },
+				{ "50 / 2 * 2 + 10 - 5", 55 },
+				{ "5 + 5 + 5 + 5 - 10", 10 },
+				{ "2 * 2 * 2 * 2 * 2", 32 },
+				{ "5 * 2 + 10", 20 },
+				{ "5 + 2 * 10", 25 },
+				{ "5 * (2 + 10)", 60 },
 			}
 
 			run_vm_tests(tests)
@@ -91,11 +91,28 @@ return {
 
 		it("can do boolean expressions", function()
 			local tests = {
-				{"true", true},
-				{"false", false}
+				{ "true", true },
+				{ "false", false },
+				{ "1 < 2", true },
+				{ "1 > 2", false },
+				{ "1 < 1", false },
+				{ "1 > 1", false },
+				{ "1 == 1", true },
+				{ "1 != 1", false },
+				{ "1 == 2", false },
+				{ "1 != 2", true },
+				{ "true == true", true },
+				{ "false == false", true },
+				{ "true == false", false },
+				{ "true != false", true },
+				{ "false != true", true },
+				{ "(1 < 2) == true", true },
+				{ "(1 < 2) == false", false },
+				{ "(1 > 2) == true", false },
+				{ "(1 > 2) == false", true },
 			}
 
 			run_vm_tests(tests)
-		end)
+		end),
 	},
 }
