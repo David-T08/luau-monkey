@@ -138,6 +138,16 @@ local function compile(node: AST.Node, debugging: boolean?): (string?, {
 		else
 			emit(opcodes.OP_FALSE)
 		end
+  elseif node.node_type == AST.PREFIX_EXPRESSION then
+    local err = compile((node :: AST.PrefixExpression).right)
+    if err then return err end
+
+    local operator = (node :: AST.PrefixExpression).operator
+    if operator == "!" then
+      emit(opcodes.OP_BANG)
+    elseif operator == "-" then
+      emit(opcodes.OP_NEGATE)
+    end
 	end
 
 	reset = true

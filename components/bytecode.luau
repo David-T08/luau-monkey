@@ -19,7 +19,10 @@ local opcodes = table.freeze({
 	OP_EQUAL = 0x8,
 	OP_NOT_EQUAL = 0x9,
 	OP_GREATER_THAN = 0xA,
-	OP_GREATER_THAN_EQUAL = 0xB
+	OP_GREATER_THAN_EQUAL = 0xB,
+  
+  OP_NEGATE = 0xC,
+  OP_BANG = 0xD
 })
 
 local definitions = table.freeze({
@@ -74,6 +77,15 @@ local definitions = table.freeze({
 		name = "OpGreaterThanEqual",
 		widths = {}
 	},
+
+  [opcodes.OP_NEGATE] = {
+    name = "OpNegate",
+    widths = {}
+  },
+  [opcodes.OP_BANG] = {
+    name = "OpBang",
+    widths = {}
+  }
 })
 
 local function swap_endianess(number: number): number

@@ -170,6 +170,15 @@ return {
 						make(opcodes.OP_POP)
 					}
 				},
+        {
+					input = "-1",
+					expected_constants = {1},
+					expected_instructions = {
+						make(opcodes.OP_CONSTANT, 0),
+						make(opcodes.OP_NEGATE),
+						make(opcodes.OP_POP)
+					}
+				},
 			}
 
 			run_compiler_tests(tests)
@@ -250,6 +259,15 @@ return {
 						make(opcodes.OP_TRUE),
 						make(opcodes.OP_FALSE),
 						make(opcodes.OP_NOT_EQUAL),
+						make(opcodes.OP_POP)
+					}
+				},
+        {
+					input = "!true",
+					expected_constants = {},
+					expected_instructions = {
+						make(opcodes.OP_TRUE),
+						make(opcodes.OP_BANG),
 						make(opcodes.OP_POP)
 					}
 				},

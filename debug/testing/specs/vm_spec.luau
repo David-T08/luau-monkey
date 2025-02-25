@@ -45,11 +45,11 @@ end
 local function test_expected_object(expected: any, got: object.BaseObject<unknown>)
 	local typ = typeof(expected)
 	if typ == "number" then
-		expect("NUMBER", got, 5)
-		assert.are_equal(got.value, expected, `Expected value to be $2, got $1`, 5)
+		expect("NUMBER", got, 4)
+		assert.are_equal(got.value, expected, `Expected value to be $2, got $1`, 4)
 	elseif typ == "boolean" then
-		expect("BOOLEAN", got, 5)
-		assert.are_equal(got.value, expected, `Expected value to be $2, got $1`, 5)
+		expect("BOOLEAN", got, 4)
+		assert.are_equal(got.value, expected, `Expected value to be $2, got $1`, 4)
 	end
 end
 
@@ -57,10 +57,11 @@ local function run_vm_tests(tests)
 	for _, test in ipairs(tests) do
 		local program = parse(lex(test[1]))
 
+    print(test[1])
 		local err, compiled = compile(program)
 		assert.are_equal(err, nil, `Failed to compile: $1`)
 
-		local vm_err, stack_top = vm(compiled.constants, compiled.instructions)
+		local vm_err, stack_top = vm(compiled.constants, compiled.instructions, true)
 		assert.are_equal(vm_err, nil, `VM failed to run: $1`)
 
 		test_expected_object(test[2], stack_top)
@@ -84,6 +85,10 @@ return {
 				{ "5 * 2 + 10", 20 },
 				{ "5 + 2 * 10", 25 },
 				{ "5 * (2 + 10)", 60 },
+				{ "-5", -5 },
+				{ "-10", -10 },
+				{ "-50 + 100 + -50", 0 },
+				{ "(5 + 10 * 2 + 15 / 3) * 2 + -10", 50 },
 			}
 
 			run_vm_tests(tests)
@@ -110,6 +115,12 @@ return {
 				{ "(1 < 2) == false", false },
 				{ "(1 > 2) == true", false },
 				{ "(1 > 2) == false", true },
+				{ "!true", false },
+				{ "!false", true },
+				{ "!5", false },
+				{ "!!true", true },
+				{ "!!false", false },
+				{ "!!5", true },
 			}
 
 			run_vm_tests(tests)
