@@ -244,6 +244,23 @@ return function(
 				log(` Failed to push: {err2}`)
 				return err2
 			end
+    elseif op == opcodes.OP_JMP then
+      local pos = swap_endianess(buffer.readu16(instructions, ip + 1))
+      ip = pos - 1
+    elseif op == opcodes.OP_JMP_COND then
+			local pos = swap_endianess(buffer.readu16(instructions, ip + 1))
+			ip += 2
+
+      local c_err, condition = pop()
+      if c_err then
+        return c_err
+      end
+      
+      -- Check if it is not truthy
+      if (if condition.obj_type == object.kinds.BOOLEAN then condition.value else true) ~= true then
+        ip = pos - 1
+      end
+
 		end
 
 		ip += 1

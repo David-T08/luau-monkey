@@ -203,7 +203,7 @@ local function compile(node: AST.Node, debugging: boolean?): (string?, {
     end
 
     -- Emit a jmp to a fake offset, we'll update it later after compiliation
-    local jmp = emit(opcodes.OP_JMP_COND, 9999)
+    local jmp_cond_pos = emit(opcodes.OP_JMP_COND, 9999)
 
     reset = false
     local consequence_err = compile((node :: AST.IfExpression).consequence, debugging)
@@ -219,7 +219,32 @@ local function compile(node: AST.Node, debugging: boolean?): (string?, {
       dealloc(1)
     end
 
-    change_operand(jmp, offset)
+    if not (node :: AST.IfExpression).alternative then
+      -- Skip directly to the end of the block
+      change_operand(jmp_cond_pos, offset)
+    else
+      -- Generate fake offset to change later
+      local jmp_pos = emit(opcodes.OP_JMP, 9999)
+      -- Jump past the above jump so we dont skip the alternative
+      change_operand(jmp_cond_pos, offset)
+
+			reset = false
+			local alternate_err = compile((node :: AST.IfExpression).alternative :: any, debugging)
+			if alternate_err then
+				return alternate_err
+			end
+
+			-- Remove the last pop
+			if last_instr_op == opcodes.OP_POP then
+				last_instr_op = prev_instr_op
+				last_instr_pos = prev_instr_pos
+
+				dealloc(1)
+			end
+
+      -- Jump to the end of the block
+      change_operand(jmp_pos, offset)
+    end
 
   elseif node.node_type == AST.BLOCK_STATEMENT then
     for _, stmt in ipairs((node :: AST.BlockStatement).statements) do

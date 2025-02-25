@@ -57,6 +57,7 @@ local function run_vm_tests(tests)
 	for _, test in ipairs(tests) do
 		local program = parse(lex(test[1]))
 
+		-- print(test[1])
 		local err, compiled = compile(program)
 		assert.are_equal(err, nil, `Failed to compile: $1`)
 
@@ -120,6 +121,20 @@ return {
 				{ "!!true", true },
 				{ "!!false", false },
 				{ "!!5", true },
+			}
+
+			run_vm_tests(tests)
+		end),
+
+		it("can do conditionals", function()
+			local tests = {
+				{ "if (true) { 10 }", 10 },
+				{ "if (true) { 10 } else { 20 }", 10 },
+				{ "if (false) { 10 } else { 20 } ", 20 },
+				{ "if (1) { 10 }", 10 },
+				{ "if (1 < 2) { 10 }", 10 },
+				{ "if (1 < 2) { 10 } else { 20 }", 10 },
+				{ "if (1 > 2) { 10 } else { 20 }", 20 },
 			}
 
 			run_vm_tests(tests)

@@ -107,7 +107,7 @@ end
 local function run_compiler_tests(tests: { CompilerTest })
 	for _, test in ipairs(tests) do
 		local program = parse(lex(test.input))
-		local err, output = compile(program, true)
+		local err, output = compile(program)
 		if err then
 			error(`Failed to compile: {err}`)
 		end
@@ -290,6 +290,20 @@ return {
             make(opcodes.OP_POP), -- 0x7
             make(opcodes.OP_CONSTANT, 1), -- 0x8
             make(opcodes.OP_POP) -- 0xB
+					},
+        },
+        {
+					input = "if (true) { 10 } else { 20 } 3333;",
+					expected_constants = { 10, 20, 3333 },
+					expected_instructions = {
+						make(opcodes.OP_TRUE), -- 0x0
+            make(opcodes.OP_JMP_COND, 10), -- 0x1
+            make(opcodes.OP_CONSTANT, 0), -- 0x4
+            make(opcodes.OP_JMP, 13), -- 0x7,
+            make(opcodes.OP_CONSTANT, 1), -- 0xA
+            make(opcodes.OP_POP), -- 0xC
+            make(opcodes.OP_CONSTANT, 2), -- 0xE
+            make(opcodes.OP_POP) -- 0x1F
 					},
         }
 			}
