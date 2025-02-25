@@ -1,5 +1,4 @@
 --!strict
-
 local AST, AST_STR = require("ast")
 local bytecode = require("bytecode")
 local object = require("evaluator/object")
@@ -18,6 +17,12 @@ local _buffer_copy = buffer.copy
 local _buffer_new = buffer.create
 
 local _debug = false
+
+local last_instr_pos: number = 0
+local last_instr_op: number = 0
+
+local prev_instr_pos: number = 0
+local prev_instr_op: number = 0
 
 local function log(...: any)
 	if not _debug then
@@ -40,7 +45,34 @@ local function alloc(bytes)
 	instructions = new
 end
 
-local function emit(op: number, ...: number)
+local function dealloc(bytes: number)
+	if offset - bytes < 0 then
+		return
+	end
+
+	log(`De-allocating {bytes} bytes`)
+
+	size -= bytes
+  offset -= bytes
+
+	local new = _buffer_new(size)
+	_buffer_copy(new, 0, instructions, 0, size)
+  
+	instructions = new
+end
+
+local function replace_instruction(pos: number, instruction: buffer)
+  _buffer_copy(instructions, pos, instruction)
+end
+
+local function change_operand(op_pos: number, operand: number)
+  replace_instruction(op_pos, make(
+    buffer.readu8(instructions, op_pos), 
+    operand)
+  )
+end
+
+local function emit(op: number, ...: number): number
   local ops = table.concat({...}, ", ")
 
 	log(`Emitting {op} ({definitons[op].name}){if #ops > 0 then `; operands: \{{ops}}` else ""}`)
@@ -53,6 +85,14 @@ local function emit(op: number, ...: number)
 	log(`  Copied to program at offset: {string.format("%08X", offset)}`)
 
 	offset += len
+
+  prev_instr_pos = last_instr_pos
+  prev_instr_op = last_instr_op
+
+  last_instr_op = op
+  last_instr_pos = offset
+
+  return offset - len
 end
 
 local reset = true
@@ -61,11 +101,18 @@ local function compile(node: AST.Node, debugging: boolean?): (string?, {
 	constants: { object.BaseObject<unknown> },
 }?)
   _debug = debugging or false
+
   if reset then
 		log(`\nNEW COMPILATION`)
 		constants = {}
 		instructions = _buffer_new(0)
 		size, offset = 0, 0
+
+    last_instr_op = 0
+    last_instr_pos = 0
+
+    prev_instr_op = 0
+    prev_instr_pos = 0
 	end
 	log(`Compiling {AST_STR[node.node_type]}`)
 
@@ -139,7 +186,7 @@ local function compile(node: AST.Node, debugging: boolean?): (string?, {
 			emit(opcodes.OP_FALSE)
 		end
   elseif node.node_type == AST.PREFIX_EXPRESSION then
-    local err = compile((node :: AST.PrefixExpression).right)
+    local err = compile((node :: AST.PrefixExpression).right, debugging)
     if err then return err end
 
     local operator = (node :: AST.PrefixExpression).operator
@@ -147,6 +194,39 @@ local function compile(node: AST.Node, debugging: boolean?): (string?, {
       emit(opcodes.OP_BANG)
     elseif operator == "-" then
       emit(opcodes.OP_NEGATE)
+    end
+  elseif node.node_type == AST.IF_EXPRESSION then
+    reset = false
+    local cond_err = compile((node :: AST.IfExpression).condition, debugging)
+    if cond_err then
+      return cond_err
+    end
+
+    -- Emit a jmp to a fake offset, we'll update it later after compiliation
+    local jmp = emit(opcodes.OP_JMP_COND, 9999)
+
+    reset = false
+    local consequence_err = compile((node :: AST.IfExpression).consequence, debugging)
+    if consequence_err then
+      return consequence_err
+    end
+
+    -- Remove the last pop
+    if last_instr_op == opcodes.OP_POP then
+      last_instr_op = prev_instr_op
+      last_instr_pos = prev_instr_pos
+    
+      dealloc(1)
+    end
+
+    change_operand(jmp, offset)
+
+  elseif node.node_type == AST.BLOCK_STATEMENT then
+    for _, stmt in ipairs((node :: AST.BlockStatement).statements) do
+      local err = compile(stmt, debugging)
+      if err then 
+        return err
+      end
     end
 	end
 

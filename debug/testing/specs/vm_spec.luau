@@ -57,11 +57,10 @@ local function run_vm_tests(tests)
 	for _, test in ipairs(tests) do
 		local program = parse(lex(test[1]))
 
-    print(test[1])
 		local err, compiled = compile(program)
 		assert.are_equal(err, nil, `Failed to compile: $1`)
 
-		local vm_err, stack_top = vm(compiled.constants, compiled.instructions, true)
+		local vm_err, stack_top = vm(compiled.constants, compiled.instructions, false)
 		assert.are_equal(vm_err, nil, `VM failed to run: $1`)
 
 		test_expected_object(test[2], stack_top)

@@ -13,8 +13,8 @@ local format = require("../../format")
 
 type CompilerTest = {
 	input: string,
-	expected_constants: {any},
-	expected_instructions: {bytecode.Instruction}
+	expected_constants: { any },
+	expected_instructions: { bytecode.Instruction },
 }
 
 local OBJ_TYPES_STRINGS = table.freeze({
@@ -48,12 +48,7 @@ local function expr_typeof(expr: object.BaseObject<unknown> | any): string
 end
 
 local function expect(what, expr, err_lvl)
-	assert.are_equal(
-		expr_typeof(expr),
-		what,
-		`Expected object to be an $2, got $1`,
-		err_lvl
-	)
+	assert.are_equal(expr_typeof(expr), what, `Expected object to be an $2, got $1`, err_lvl)
 end
 
 local function test_integer_object(expected: number, got: object.BaseObject<number>)
@@ -61,7 +56,7 @@ local function test_integer_object(expected: number, got: object.BaseObject<numb
 	assert.are_equal(got.value, expected, `Expected value to be $2, got $1`, 5)
 end
 
-local function concat_instructions(instructions: {bytecode.Instruction}): bytecode.Instruction
+local function concat_instructions(instructions: { bytecode.Instruction }): bytecode.Instruction
 	local size = 0
 	for _, instr in ipairs(instructions) do
 		size += buffer.len(instr)
@@ -77,21 +72,28 @@ local function concat_instructions(instructions: {bytecode.Instruction}): byteco
 	return out
 end
 
-local function test_instructions(expected: {bytecode.Instruction}, got: bytecode.Instruction)	
+local function test_instructions(expected: { bytecode.Instruction }, got: bytecode.Instruction)
 	local concatted = concat_instructions(expected)
-	assert.are_equal(buffer.len(got), buffer.len(concatted), `Instruction has wrong length, got: $1, expected: $2\n\nGot:\n{format(got)}\nExpected:\n{format(concatted)}`, 4)
+	assert.are_equal(
+		buffer.len(got),
+		buffer.len(concatted),
+		`Instruction has wrong length, got: $1, expected: $2\n\nGot:\n{format(got)}\nExpected:\n{format(concatted)}`,
+		4
+	)
 
 	for byte = 1, buffer.len(concatted) do
 		assert.are_equal(
 			buffer.readu8(got, byte - 1),
 			buffer.readu8(concatted, byte - 1),
-			`\nWrong byte at 0x{string.format("%08X", byte - 1)}, got: $1, expected: $2\n\nGot:\n{format(got)}\nExpected:\n{format(expected)}`,
+			`\nWrong byte at 0x{string.format("%08X", byte - 1)}, got: $1, expected: $2\n\nGot:\n{format(got)}\nExpected:\n{format(
+				expected
+			)}`,
 			4
 		)
 	end
 end
 
-local function test_constants(expected: { any }, got: {object.BaseObject<unknown>})
+local function test_constants(expected: { any }, got: { object.BaseObject<unknown> })
 	assert.are_equal(#got, #expected, `Wrong number of constants, got: $1, expected: $2`)
 
 	for index, constant in ipairs(expected) do
@@ -102,10 +104,10 @@ local function test_constants(expected: { any }, got: {object.BaseObject<unknown
 	end
 end
 
-local function run_compiler_tests(tests: {CompilerTest})
+local function run_compiler_tests(tests: { CompilerTest })
 	for _, test in ipairs(tests) do
 		local program = parse(lex(test.input))
-		local err, output = compile(program)
+		local err, output = compile(program, true)
 		if err then
 			error(`Failed to compile: {err}`)
 		end
@@ -119,65 +121,65 @@ return {
 	describe = "the compiler",
 	tests = {
 		it("can do integer arithmetic", function()
-			local tests: {CompilerTest} = {
+			local tests: { CompilerTest } = {
 				{
 					input = "1 + 2",
-					expected_constants = {1,2},
+					expected_constants = { 1, 2 },
 					expected_instructions = {
 						make(opcodes.OP_CONSTANT, 0),
 						make(opcodes.OP_CONSTANT, 1),
 						make(opcodes.OP_ADD),
-						make(opcodes.OP_POP)
-					}
+						make(opcodes.OP_POP),
+					},
 				},
 				{
 					input = "1; 2",
-					expected_constants = {1, 2},
+					expected_constants = { 1, 2 },
 					expected_instructions = {
 						make(opcodes.OP_CONSTANT, 0),
 						make(opcodes.OP_POP),
 						make(opcodes.OP_CONSTANT, 1),
 						make(opcodes.OP_POP),
-					}
+					},
 				},
 				{
 					input = "1 - 2",
-					expected_constants = {1,2},
+					expected_constants = { 1, 2 },
 					expected_instructions = {
 						make(opcodes.OP_CONSTANT, 0),
 						make(opcodes.OP_CONSTANT, 1),
 						make(opcodes.OP_SUB),
-						make(opcodes.OP_POP)
-					}
+						make(opcodes.OP_POP),
+					},
 				},
 				{
 					input = "1 / 2",
-					expected_constants = {1,2},
+					expected_constants = { 1, 2 },
 					expected_instructions = {
 						make(opcodes.OP_CONSTANT, 0),
 						make(opcodes.OP_CONSTANT, 1),
 						make(opcodes.OP_DIV),
-						make(opcodes.OP_POP)
-					}
+						make(opcodes.OP_POP),
+					},
 				},
 				{
 					input = "1 * 2",
-					expected_constants = {1,2},
+					expected_constants = { 1, 2 },
 					expected_instructions = {
 						make(opcodes.OP_CONSTANT, 0),
 						make(opcodes.OP_CONSTANT, 1),
 						make(opcodes.OP_MUL),
-						make(opcodes.OP_POP)
-					}
+						make(opcodes.OP_POP),
+					},
 				},
-        {
+				{
 					input = "-1",
-					expected_constants = {1},
+					expected_constants = { 1 },
 					expected_instructions = {
 						make(opcodes.OP_CONSTANT, 0),
 						make(opcodes.OP_NEGATE),
-						make(opcodes.OP_POP)
-					}
+						make(opcodes.OP_POP),
+					},
 				},
 			}
 
@@ -185,62 +187,62 @@ return {
 		end),
 
 		it("can do boolean expressions", function()
-			local tests: {CompilerTest} = {
+			local tests: { CompilerTest } = {
 				{
 					input = "true",
 					expected_constants = {},
 					expected_instructions = {
 						make(opcodes.OP_TRUE),
-						make(opcodes.OP_POP)
-					}
+						make(opcodes.OP_POP),
+					},
 				},
 				{
 					input = "false",
 					expected_constants = {},
 					expected_instructions = {
 						make(opcodes.OP_FALSE),
-						make(opcodes.OP_POP)
-					}
+						make(opcodes.OP_POP),
+					},
 				},
 				{
 					input = "1 > 2",
-					expected_constants = {1,2},
+					expected_constants = { 1, 2 },
 					expected_instructions = {
 						make(opcodes.OP_CONSTANT, 0),
 						make(opcodes.OP_CONSTANT, 1),
 						make(opcodes.OP_GREATER_THAN),
-						make(opcodes.OP_POP)
-					}
+						make(opcodes.OP_POP),
+					},
 				},
 				{
 					input = "1 < 2",
-					expected_constants = {2, 1},
+					expected_constants = { 2, 1 },
 					expected_instructions = {
 						make(opcodes.OP_CONSTANT, 0),
 						make(opcodes.OP_CONSTANT, 1),
 						make(opcodes.OP_GREATER_THAN),
-						make(opcodes.OP_POP)
-					}
+						make(opcodes.OP_POP),
+					},
 				},
 				{
 					input = "1 == 2",
-					expected_constants = {1,2},
+					expected_constants = { 1, 2 },
 					expected_instructions = {
 						make(opcodes.OP_CONSTANT, 0),
 						make(opcodes.OP_CONSTANT, 1),
 						make(opcodes.OP_EQUAL),
-						make(opcodes.OP_POP)
-					}
+						make(opcodes.OP_POP),
+					},
 				},
 				{
 					input = "1 != 2",
-					expected_constants = {1,2},
+					expected_constants = { 1, 2 },
 					expected_instructions = {
 						make(opcodes.OP_CONSTANT, 0),
 						make(opcodes.OP_CONSTANT, 1),
 						make(opcodes.OP_NOT_EQUAL),
-						make(opcodes.OP_POP)
-					}
+						make(opcodes.OP_POP),
+					},
 				},
 				{
 					input = "true == false",
@@ -249,8 +251,8 @@ return {
 						make(opcodes.OP_TRUE),
 						make(opcodes.OP_FALSE),
 						make(opcodes.OP_EQUAL),
-						make(opcodes.OP_POP)
-					}
+						make(opcodes.OP_POP),
+					},
 				},
 				{
 					input = "true != false",
@@ -259,21 +261,40 @@ return {
 						make(opcodes.OP_TRUE),
 						make(opcodes.OP_FALSE),
 						make(opcodes.OP_NOT_EQUAL),
-						make(opcodes.OP_POP)
-					}
+						make(opcodes.OP_POP),
+					},
 				},
-        {
+				{
 					input = "!true",
 					expected_constants = {},
 					expected_instructions = {
 						make(opcodes.OP_TRUE),
 						make(opcodes.OP_BANG),
-						make(opcodes.OP_POP)
-					}
+						make(opcodes.OP_POP),
+					},
 				},
 			}
 
 			run_compiler_tests(tests)
-		end)
+		end),
+
+		it("can do conditionals", function()
+			local tests: { CompilerTest } = {
+				{
+					input = "if (true) { 10; } 3333;",
+					expected_constants = { 10, 3333 },
+					expected_instructions = {
+						make(opcodes.OP_TRUE), -- 0x0
+            make(opcodes.OP_JMP_COND, 7), -- 0x1
+            make(opcodes.OP_CONSTANT, 0), -- 0x4
+            make(opcodes.OP_POP), -- 0x7
+            make(opcodes.OP_CONSTANT, 1), -- 0x8
+            make(opcodes.OP_POP) -- 0xB
+					},
+        }
+			}
+
+			run_compiler_tests(tests)
+		end),
 	},
 }

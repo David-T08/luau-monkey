@@ -22,7 +22,10 @@ local opcodes = table.freeze({
 	OP_GREATER_THAN_EQUAL = 0xB,
   
   OP_NEGATE = 0xC,
-  OP_BANG = 0xD
+  OP_BANG = 0xD,
+
+  OP_JMP = 0xE,
+  OP_JMP_COND = 0xF,
 })
 
 local definitions = table.freeze({
@@ -85,9 +88,20 @@ local definitions = table.freeze({
   [opcodes.OP_BANG] = {
     name = "OpBang",
     widths = {}
+  },
+
+  [opcodes.OP_JMP] = {
+    name = "OpJmp",
+    widths = {2}
+  },
+  [opcodes.OP_JMP_COND] = {
+    name = "OpJmpCond",
+    widths = {2}
   }
 })
 
+-- Monkey expects BE not LE, buffers dont let use write in a specific order like that
+-- So bit shift to properly convert
 local function swap_endianess(number: number): number
 	local low = bit32.band(number, 0xFF)
 	local high = bit32.band(bit32.rshift(number, 8), 0xFF)
