@@ -26,6 +26,8 @@ local opcodes = table.freeze({
 
   OP_JMP = 0xE,
   OP_JMP_COND = 0xF,
+
+  OP_NULL = 0x10
 })
 
 local definitions = table.freeze({
@@ -97,6 +99,11 @@ local definitions = table.freeze({
   [opcodes.OP_JMP_COND] = {
     name = "OpJmpCond",
     widths = {2}
+  },
+  
+  [opcodes.OP_NULL] = {
+    name = "OpNull",
+    widths = {}
   }
 })
 

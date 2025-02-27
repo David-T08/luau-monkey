@@ -50,6 +50,8 @@ local function test_expected_object(expected: any, got: object.BaseObject<unknow
 	elseif typ == "boolean" then
 		expect("BOOLEAN", got, 4)
 		assert.are_equal(got.value, expected, `Expected value to be $2, got $1`, 4)
+	elseif typ == "nil" then
+		expect("NULL", got, 4)
 	end
 end
 
@@ -121,6 +123,7 @@ return {
 				{ "!!true", true },
 				{ "!!false", false },
 				{ "!!5", true },
+				{ "!(if (false) { 5; })", true },
 			}
 
 			run_vm_tests(tests)
@@ -135,6 +138,9 @@ return {
 				{ "if (1 < 2) { 10 }", 10 },
 				{ "if (1 < 2) { 10 } else { 20 }", 10 },
 				{ "if (1 > 2) { 10 } else { 20 }", 20 },
+				{ "if (1 > 2) { 10 }", nil },
+				{ "if (false) { 10 }", nil },
+				{ "!(if (false) { 5; })", true },
 			}
 
 			run_vm_tests(tests)

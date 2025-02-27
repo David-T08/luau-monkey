@@ -285,11 +285,13 @@ return {
 					expected_constants = { 10, 3333 },
 					expected_instructions = {
 						make(opcodes.OP_TRUE), -- 0x0
-            make(opcodes.OP_JMP_COND, 7), -- 0x1
+            make(opcodes.OP_JMP_COND, 0xA), -- 0x1
             make(opcodes.OP_CONSTANT, 0), -- 0x4
-            make(opcodes.OP_POP), -- 0x7
-            make(opcodes.OP_CONSTANT, 1), -- 0x8
-            make(opcodes.OP_POP) -- 0xB
+            make(opcodes.OP_JMP, 0xB), -- 0x7
+            make(opcodes.OP_NULL), -- 0xA
+            make(opcodes.OP_POP), -- 0xB
+            make(opcodes.OP_CONSTANT, 1), -- 0xC
+            make(opcodes.OP_POP) -- 0xF
 					},
         },
         {

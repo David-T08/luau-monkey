@@ -213,7 +213,7 @@ return function(
 
 			if value.value == true then
 				chosen = object.constants[false]
-			elseif value.value == false then
+			elseif value.value == false or value.obj_type == object.kinds.NULL then
 				chosen = object.constants[true]
       else
         chosen = object.constants[false]
@@ -255,12 +255,23 @@ return function(
       if c_err then
         return c_err
       end
+
+      local truthy = true
+      if condition.obj_type == object.kinds.BOOLEAN then
+        truthy = condition.value :: any
+      elseif condition.obj_type == object.kinds.NULL then
+        truthy = false
+      end
       
       -- Check if it is not truthy
-      if (if condition.obj_type == object.kinds.BOOLEAN then condition.value else true) ~= true then
+      if not truthy then
         ip = pos - 1
       end
-
+    elseif op == opcodes.OP_NULL then
+      local err = push(object.constants.null)
+      if err then
+        return err
+      end
 		end
 
 		ip += 1

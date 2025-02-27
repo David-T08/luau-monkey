@@ -219,15 +219,16 @@ local function compile(node: AST.Node, debugging: boolean?): (string?, {
       dealloc(1)
     end
 
-    if not (node :: AST.IfExpression).alternative then
-      -- Skip directly to the end of the block
-      change_operand(jmp_cond_pos, offset)
+    -- Generate fake offset to change later
+    -- Jump past the above jump so we dont skip the alternative
+    local jmp_pos = emit(opcodes.OP_JMP, 9999)
+    -- Update the conditional jump to point to the alternative
+    change_operand(jmp_cond_pos, offset)
+    
+    if (node :: AST.IfExpression).alternative == nil then
+      -- Emit null for the alternative
+      emit(opcodes.OP_NULL)
     else
-      -- Generate fake offset to change later
-      local jmp_pos = emit(opcodes.OP_JMP, 9999)
-      -- Jump past the above jump so we dont skip the alternative
-      change_operand(jmp_cond_pos, offset)
-
 			reset = false
 			local alternate_err = compile((node :: AST.IfExpression).alternative :: any, debugging)
 			if alternate_err then
@@ -240,12 +241,11 @@ local function compile(node: AST.Node, debugging: boolean?): (string?, {
 				last_instr_pos = prev_instr_pos
 
 				dealloc(1)
-			end
-
-      -- Jump to the end of the block
-      change_operand(jmp_pos, offset)
+      end
     end
-
+    
+    -- Jump to the end of the block
+    change_operand(jmp_pos, offset)
   elseif node.node_type == AST.BLOCK_STATEMENT then
     for _, stmt in ipairs((node :: AST.BlockStatement).statements) do
       local err = compile(stmt, debugging)
