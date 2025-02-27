@@ -27,7 +27,10 @@ local opcodes = table.freeze({
   OP_JMP = 0xE,
   OP_JMP_COND = 0xF,
 
-  OP_NULL = 0x10
+  OP_NULL = 0x10,
+
+  OP_SET_GLOBAL = 0x11,
+  OP_GET_GLOBAL = 0x12
 })
 
 local definitions = table.freeze({
@@ -104,6 +107,15 @@ local definitions = table.freeze({
   [opcodes.OP_NULL] = {
     name = "OpNull",
     widths = {}
+  },
+
+  [opcodes.OP_SET_GLOBAL] = {
+    name = "OpSetGlobal",
+    widths = {2}
+  },
+  [opcodes.OP_GET_GLOBAL] = {
+    name = "OpGetGlobal",
+    widths = {2}
   }
 })
 

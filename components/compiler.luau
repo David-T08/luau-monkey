@@ -253,6 +253,14 @@ local function compile(node: AST.Node, debugging: boolean?): (string?, {
         return err
       end
     end
+  elseif node.node_type == AST.LET_STATEMENT then
+    reset = false
+    local err = compile((node :: AST.LetStatement).value)
+    if err then
+      return err
+    end
+
+
 	end
 
 	reset = true

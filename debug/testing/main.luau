@@ -142,5 +142,6 @@ runTests(
 	-- require("specs/evaluator_spec"),
 	require("specs/bytecode_spec"),
 	require("specs/compiler_spec"),
-	require("specs/vm_spec")
+	require("specs/vm_spec"),
+  require("specs/symbol_spec")
 )

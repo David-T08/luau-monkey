@@ -285,32 +285,71 @@ return {
 					expected_constants = { 10, 3333 },
 					expected_instructions = {
 						make(opcodes.OP_TRUE), -- 0x0
-            make(opcodes.OP_JMP_COND, 0xA), -- 0x1
-            make(opcodes.OP_CONSTANT, 0), -- 0x4
-            make(opcodes.OP_JMP, 0xB), -- 0x7
-            make(opcodes.OP_NULL), -- 0xA
-            make(opcodes.OP_POP), -- 0xB
-            make(opcodes.OP_CONSTANT, 1), -- 0xC
-            make(opcodes.OP_POP) -- 0xF
+						make(opcodes.OP_JMP_COND, 0xA), -- 0x1
+						make(opcodes.OP_CONSTANT, 0), -- 0x4
+						make(opcodes.OP_JMP, 0xB), -- 0x7
+						make(opcodes.OP_NULL), -- 0xA
+						make(opcodes.OP_POP), -- 0xB
+						make(opcodes.OP_CONSTANT, 1), -- 0xC
+						make(opcodes.OP_POP), -- 0xF
 					},
-        },
-        {
+				},
+				{
 					input = "if (true) { 10 } else { 20 } 3333;",
 					expected_constants = { 10, 20, 3333 },
 					expected_instructions = {
 						make(opcodes.OP_TRUE), -- 0x0
-            make(opcodes.OP_JMP_COND, 10), -- 0x1
-            make(opcodes.OP_CONSTANT, 0), -- 0x4
-            make(opcodes.OP_JMP, 13), -- 0x7,
-            make(opcodes.OP_CONSTANT, 1), -- 0xA
-            make(opcodes.OP_POP), -- 0xC
-            make(opcodes.OP_CONSTANT, 2), -- 0xE
-            make(opcodes.OP_POP) -- 0x1F
+						make(opcodes.OP_JMP_COND, 10), -- 0x1
+						make(opcodes.OP_CONSTANT, 0), -- 0x4
+						make(opcodes.OP_JMP, 13), -- 0x7,
+						make(opcodes.OP_CONSTANT, 1), -- 0xA
+						make(opcodes.OP_POP), -- 0xC
+						make(opcodes.OP_CONSTANT, 2), -- 0xE
+						make(opcodes.OP_POP), -- 0x1F
 					},
-        }
+				},
 			}
 
 			run_compiler_tests(tests)
+		end),
+
+		it("can do global let statements", function()
+			local tests: {CompilerTest} = {
+				{
+					input = "let one = 1; let two = 2; ",
+					expected_constants = { 1, 2 },
+					expected_instructions = {
+						make(opcodes.OP_CONSTANT, 0),
+						make(opcodes.OP_SET_GLOBAL, 0),
+						make(opcodes.OP_CONSTANT, 1),
+						make(opcodes.OP_SET_GLOBAL, 1),
+					},
+				},
+        {
+          input = "let one = 1; one;",
+          expected_constants = {1},
+          expected_instructions = {
+            make(opcodes.OP_CONSTANT, 0),
+            make(opcodes.OP_SET_GLOBAL, 0),
+            make(opcodes.OP_GET_GLOBAL, 0),
+            make(opcodes.OP_POP)
+          }
+        },
+        {
+          input = "let one = 1;let two = one; two;",
+          expected_constants = {1}, 
+          expected_instructions = {
+            make(opcodes.OP_CONSTANT, 0),
+            make(opcodes.OP_SET_GLOBAL, 0),
+            make(opcodes.OP_GET_GLOBAL, 0),
+            make(opcodes.OP_SET_GLOBAL, 1),
+            make(opcodes.OP_GET_GLOBAL, 1),
+            make(opcodes.OP_POP)
+          }
+        }
+			}
+
+      run_compiler_tests(tests)
 		end),
 	},
 }
