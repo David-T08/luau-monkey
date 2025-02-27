@@ -55,7 +55,7 @@ local function test_expected_object(expected: any, got: object.BaseObject<unknow
 	end
 end
 
-local function run_vm_tests(tests)
+local function run_vm_tests(tests, _debug: boolean?)
 	for _, test in ipairs(tests) do
 		local program = parse(lex(test[1]))
 
@@ -63,8 +63,11 @@ local function run_vm_tests(tests)
 		local err, compiled = compile(program)
 		assert.are_equal(err, nil, `Failed to compile: $1`)
 
-		local vm_err, stack_top = vm(compiled.constants, compiled.instructions, false)
+		local vm_err, stack_top = vm(compiled.constants, compiled.instructions, _debug)
 		assert.are_equal(vm_err, nil, `VM failed to run: $1`)
+
+
+    -- print(stack_top, typeof(stack_top))
 
 		test_expected_object(test[2], stack_top)
 	end
@@ -144,6 +147,16 @@ return {
 			}
 
 			run_vm_tests(tests)
+		end),
+
+		it("can do global let statements", function()
+			local tests = {
+				{ "let one = 1; one", 1 },
+				{ "let one = 1; let two = 2; one + two", 3 },
+				{ "let one = 1; let two = one + one; one + two", 3 },
+			}
+
+      run_vm_tests(tests)
 		end),
 	},
 }

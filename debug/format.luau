@@ -171,6 +171,10 @@ local function format_buffer(b: buffer, config: BufferFormattingConfig)
 end
 
 local function format(what: any, config: BufferFormattingConfig?): string
+  if what == nil then
+    error("Expected a valid argument to format", 2)
+  end
+
 	local typ = typeof(what)
 	if typ == "buffer" then
 		return format_buffer(what, config or {})

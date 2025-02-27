@@ -10,6 +10,7 @@ local sp = 0
 
 local constants: { object.BaseObject<unknown> } = {}
 local stack: { object.BaseObject<unknown> } = {}
+local globals: { object.BaseObject<unknown> } = {}
 
 -- Holds the last element on the stack before it is popped
 local last_element: object.BaseObject<unknown>? = nil
@@ -30,6 +31,10 @@ local function swap_endianess(number: number): number
 end
 
 local function push(obj: object.BaseObject<unknown>): string?
+	if not obj then
+		return `invalid object push`
+	end
+
 	log(`Pushed {format(obj)} at sp {sp}`)
 	if sp >= STACK_SIZE then
 		log(` Overflowed`)
@@ -136,13 +141,15 @@ end
 return function(
 	consts: { object.BaseObject<unknown> },
 	instructions: bytecode.Instruction,
-	debugging: boolean?
+	debugging: boolean?,
+  prev_globals: {object.BaseObject<unknown>}?
 ): (string?, typeof(last_element))
-	sp = 0
 	stack = table.create(STACK_SIZE)
+	globals = prev_globals or {}
 	constants = consts
-	last_element = nil
 
+	sp = 0
+	last_element = nil
 	_debug = debugging or false
 
 	local len = buffer.len(instructions)
@@ -150,17 +157,19 @@ return function(
 	local ip = 0
 	local const_index = nil
 
-  if _debug then
-    local c_out = {}
-    for i, constant in ipairs(constants) do
-      table.insert(c_out, ` [{i}]: {format(constant)}`)
-    end
+	if _debug then
+		local c_out = {}
+		for i, constant in ipairs(constants) do
+			table.insert(c_out, ` [{i}]: {format(constant)}`)
+		end
 
-    c_out = table.concat(c_out, "\n ") :: any
+		c_out = table.concat(c_out, "\n ") :: any
 
-    log(`Initialized new VM{if #c_out > 0 then `\nConstants:\n {c_out}` else ""}\nBytecode:\n{format(instructions)}`)
-    log()
-  end
+		log(
+			`Initialized new VM{if #c_out > 0 then `\nConstants:\n {c_out}` else ""}\nBytecode:\n{format(instructions)}`
+		)
+		log()
+	end
 
 	while ip < len do
 		local op = buffer.readu8(instructions, ip)
@@ -202,29 +211,29 @@ return function(
 				return err
 			end
 		elseif op == opcodes.OP_BANG then
-      log(`Evaluating bang operator`)
+			log(`Evaluating bang operator`)
 			local err, value = pop()
 			if err then
-        log(` Failed to pop: {err}`)
+				log(` Failed to pop: {err}`)
 				return err
 			end
 
-      local chosen: object.BaseObject<boolean> = nil
+			local chosen: object.BaseObject<boolean> = nil
 
 			if value.value == true then
 				chosen = object.constants[false]
 			elseif value.value == false or value.obj_type == object.kinds.NULL then
 				chosen = object.constants[true]
-      else
-        chosen = object.constants[false]
+			else
+				chosen = object.constants[false]
 			end
 
-      local err2 = push(chosen)
-      if err2 then 
-        log(` Failed to push: {err2}`)
-        return err2
-      end
-    elseif op == opcodes.OP_NEGATE then
+			local err2 = push(chosen)
+			if err2 then
+				log(` Failed to push: {err2}`)
+				return err2
+			end
+		elseif op == opcodes.OP_NEGATE then
 			log(`Evaluating negate operator`)
 			local err, value = pop()
 			if err then
@@ -232,43 +241,61 @@ return function(
 				return err
 			end
 
-      if value.obj_type ~= object.kinds.NUMBER then
-        return `unsupported type for negation: {value.obj_type}`
-      end
+			if value.obj_type ~= object.kinds.NUMBER then
+				return `unsupported type for negation: {value.obj_type}`
+			end
 
 			local err2 = push({
-        obj_type = object.kinds.NUMBER,
-        value = -value.value :: number
-      } :: object.BaseObject<number>)
+				obj_type = object.kinds.NUMBER,
+				value = -value.value :: number,
+			} :: object.BaseObject<number>)
 			if err2 then
 				log(` Failed to push: {err2}`)
 				return err2
 			end
-    elseif op == opcodes.OP_JMP then
-      local pos = swap_endianess(buffer.readu16(instructions, ip + 1))
-      ip = pos - 1
-    elseif op == opcodes.OP_JMP_COND then
+		elseif op == opcodes.OP_JMP then
+			local pos = swap_endianess(buffer.readu16(instructions, ip + 1))
+			ip = pos - 1
+		elseif op == opcodes.OP_JMP_COND then
 			local pos = swap_endianess(buffer.readu16(instructions, ip + 1))
 			ip += 2
 
-      local c_err, condition = pop()
-      if c_err then
-        return c_err
+			local c_err, condition = pop()
+			if c_err then
+				return c_err
+			end
+
+			local truthy = true
+			if condition.obj_type == object.kinds.BOOLEAN then
+				truthy = condition.value :: any
+			elseif condition.obj_type == object.kinds.NULL then
+				truthy = false
+			end
+
+			-- Check if it is not truthy
+			if not truthy then
+				ip = pos - 1
+			end
+		elseif op == opcodes.OP_NULL then
+			local err = push(object.constants.null)
+			if err then
+				return err
+			end
+    elseif op == opcodes.OP_SET_GLOBAL then
+			local index = swap_endianess(buffer.readu16(instructions, ip + 1))
+			ip += 2
+
+      local err, value = pop()
+      if err then
+        return err
       end
 
-      local truthy = true
-      if condition.obj_type == object.kinds.BOOLEAN then
-        truthy = condition.value :: any
-      elseif condition.obj_type == object.kinds.NULL then
-        truthy = false
-      end
-      
-      -- Check if it is not truthy
-      if not truthy then
-        ip = pos - 1
-      end
-    elseif op == opcodes.OP_NULL then
-      local err = push(object.constants.null)
+      globals[index] = value
+    elseif op == opcodes.OP_GET_GLOBAL then
+			local index = swap_endianess(buffer.readu16(instructions, ip + 1))
+			ip += 2
+
+      local err = push(globals[index])
       if err then
         return err
       end
@@ -277,6 +304,6 @@ return function(
 		ip += 1
 	end
 
-  log()
+	log()
 	return nil, last_element
 end
