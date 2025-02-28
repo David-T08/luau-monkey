@@ -21,7 +21,7 @@ return {
 
 			if argument.obj_type == object.kinds.STRING then
 				---@cast argument String
-				local len = string.len((argument :: object.BaseObject<string>).value)
+				local len = string.len((argument :: object.String).value)
 
 				return {
 					obj_type = object.kinds.NUMBER,
@@ -45,7 +45,7 @@ return {
 				return newError(`expected 1 argument, got {#args}`)
 			end
 
-			local arr = args[1] :: object.BaseObject<{ object.BaseObject<unknown> }>
+			local arr = args[1] :: object.Array
 
 			if arr.obj_type == object.kinds.ARRAY then
 				local len = #arr.value
@@ -65,7 +65,7 @@ return {
 				return newError(`expected 1 argument, got {#args}`)
 			end
 
-			local arr = args[1] :: object.BaseObject<{ object.BaseObject<unknown> }>
+			local arr = args[1] :: object.Array
 
 			if arr.obj_type == object.kinds.ARRAY then
 				local len = #arr.value
@@ -87,7 +87,7 @@ return {
 				return newError(`expected 1 argument, got {#args}`)
 			end
 
-			local arr = args[1] :: object.BaseObject<{ object.BaseObject<unknown> }>
+			local arr = args[1] :: object.Array
 
 			if arr.obj_type == object.kinds.ARRAY then
 				local len = #arr.value
@@ -115,7 +115,7 @@ return {
 				return newError(`expected 2 argument, got {#args}`)
 			end
 
-			local arr = args[1] :: object.BaseObject<{ object.BaseObject<unknown> }>
+			local arr = args[1] :: object.Array
 
 			if arr.obj_type == object.kinds.ARRAY then
 				local cloned = table.clone(arr.value)

@@ -589,5 +589,57 @@ return {
 				testIntegerLiteral(gotvalue, expected[(gotkey :: AST.StringLiteral).value])
 			end
 		end),
+
+		it("can parse empty hash literals", function()
+			local input = "{}"
+			local program, errs = parse(lex(input))
+
+			assert.are_equal(#errs, 0, `Expected 0 errors, got {#errs}!\nErrors:\n{stdio.format(errs)}`)
+			assert.are_equal(#program.statements, 1, "Expected 1 program statement!")
+
+			local stmt = program.statements[1] :: AST.ExpressionStatement
+			expect("EXPRESSION_STATEMENT", stmt)
+
+			local hash = stmt.expression :: AST.HashLiteral
+			expect("HASH_LITERAL", hash)
+
+			local length = dictionary_len(hash.pairs)
+			assert.are_equal(length, 0, `Expected 0 pairs, got {length}`)
+		end),
+
+		it("can parse hash literals with expressions", function()
+			local input = '{"one": 0 + 1, "two": 10 - 8, "three": 15 / 5}'
+			local program, errs = parse(lex(input))
+
+			assert.are_equal(#errs, 0, `Expected 0 errors, got {#errs}!\nErrors:\n{stdio.format(errs)}`)
+			assert.are_equal(#program.statements, 1, "Expected 1 program statement!")
+
+			local stmt = program.statements[1] :: AST.ExpressionStatement
+			expect("EXPRESSION_STATEMENT", stmt)
+
+			local hash = stmt.expression :: AST.HashLiteral
+			expect("HASH_LITERAL", hash)
+
+			local length = dictionary_len(hash.pairs)
+			assert.are_equal(length, 3, `Expected 3 pairs, got {length}`)
+
+			local expected = {
+				["one"] = function(expr: AST.InfixExpression)
+          TestInfixExpression(expr, 0, "+", 1)
+        end,
+				["two"] = function(expr: AST.InfixExpression)
+          TestInfixExpression(expr, 10, "-", 8)
+        end,
+				["three"] = function(expr: AST.InfixExpression)
+          TestInfixExpression(expr, 15, "/", 5)
+        end,
+			}
+
+			for gotkey, gotvalue in pairs(hash.pairs) do
+				expect("STRING_LITERAL", gotkey, 3)
+
+				expected[(gotkey :: AST.StringLiteral).value](gotvalue)
+			end
+		end),
 	},
 }

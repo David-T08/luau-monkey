@@ -52,6 +52,14 @@ export type BaseObject<T> = {
 	value: T,
 }
 
+export type String = BaseObject<string>
+export type Number = BaseObject<number>
+export type Boolean = BaseObject<boolean>
+export type Array = BaseObject<{Unknown}>
+export type Hash = BaseObject<{[Any]: Any}>
+export type Unknown = BaseObject<unknown>
+export type Any = BaseObject<any>
+
 export type Function = {
 	obj_type: number,
 
@@ -71,6 +79,7 @@ local kinds = table.freeze({
 	RETURN = 0x6,
 	NULL = 0x7,
 	BUILTIN_FUNCTION = 0x8,
+  HASH = 0x9,
 })
 
 return {

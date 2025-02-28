@@ -5,7 +5,11 @@ local AST = require("../ast")
 
 local builtin = require("builtin")
 
-function eval_prefix_expression(right: object.BaseObject<unknown>, operator: string): object.BaseObject<unknown>
+local function is_hashable(obj_type: number)
+  return obj_type == object.kinds.NUMBER or obj_type == object.kinds.STRING or obj_type == object.kinds.BOOLEAN
+end
+
+function eval_prefix_expression(right: object.Unknown, operator: string): object.Unknown
 	if operator == "!" then
 		if right == object.constants[true] then
 			return object.constants[false]
@@ -24,7 +28,7 @@ function eval_prefix_expression(right: object.BaseObject<unknown>, operator: str
 
 		return {
 			obj_type = object.kinds.NUMBER,
-			value = -(right :: object.BaseObject<number>).value,
+			value = -(right :: object.Number).value,
 		}
 	end
 
@@ -35,10 +39,10 @@ function eval_prefix_expression(right: object.BaseObject<unknown>, operator: str
 end
 
 function eval_string_infix_expression(
-	left: object.BaseObject<string>,
+	left: object.String,
 	operator: string,
-	right: object.BaseObject<string>
-): object.BaseObject<unknown>
+	right: object.String
+): object.Unknown
 	if operator == "+" then
 		return {
 			obj_type = object.kinds.STRING,
@@ -56,11 +60,41 @@ function eval_string_infix_expression(
 	}
 end
 
+function eval_hash_literal(node: AST.HashLiteral, env: object.Environment): object.Unknown
+  local out = {}
+
+  for key_node, value_node in pairs(node.pairs) do
+    local key = eval(key_node, env)
+    if key.obj_type == object.kinds.ERROR then
+      return key
+    end
+
+    if not is_hashable(key.obj_type) then
+      return {
+        obj_type = object.kinds.STRING,
+        value = `unusable hash key: {key.obj_type}`
+      }
+    end
+
+		local value = eval(value_node, env)
+		if value.obj_type == object.kinds.ERROR then
+			return value
+		end
+
+    out[key.value] = value
+  end
+
+  return {
+    obj_type = object.kinds.HASH,
+    value = out
+  } :: object.Hash
+end
+
 function eval_number_infix_expression(
-	left: object.BaseObject<number>,
+	left: object.Number,
 	operator: string,
-	right: object.BaseObject<number>
-): object.BaseObject<unknown>
+	right: object.Number
+): object.Unknown
 	-- Arithmitic
 	if operator == "+" then
 		return {
@@ -102,10 +136,10 @@ function eval_number_infix_expression(
 end
 
 function eval_infix_expression(
-	left: object.BaseObject<unknown>,
+	left: object.Unknown,
 	operator: string,
-	right: object.BaseObject<unknown>
-): object.BaseObject<unknown>
+	right: object.Unknown
+): object.Unknown
 	if left.obj_type == object.kinds.NUMBER and right.obj_type == object.kinds.NUMBER then
 		return eval_number_infix_expression(left :: any, operator, right :: any)
 	end
@@ -162,7 +196,7 @@ function eval_block_statement(node: AST.BlockStatement, env: object.Environment)
 	return result
 end
 
-function eval_expressions(list: { AST.Expression }, env: object.Environment): { object.BaseObject<unknown> }
+function eval_expressions(list: { AST.Expression }, env: object.Environment): { object.Unknown }
 	local result = {}
 
 	for _, expr in ipairs(list) do
@@ -178,14 +212,14 @@ function eval_expressions(list: { AST.Expression }, env: object.Environment): { 
 	return result
 end
 
-function eval_identifier(node: AST.Identifier, env: object.Environment): object.BaseObject<unknown>
+function eval_identifier(node: AST.Identifier, env: object.Environment): object.Unknown
 	local value, ok = env:get(node.value)
 	if ok then
 		if value.const then
 			return {
 				obj_type = object.kinds.ERROR,
 				value = "cannot modify constant",
-			} :: object.BaseObject<string>
+			} :: object.String
 		end
 
 		return value.value
@@ -195,7 +229,7 @@ function eval_identifier(node: AST.Identifier, env: object.Environment): object.
 		or {
 			obj_type = object.kinds.ERROR,
 			value = `identifier not found: {node.value}`,
-		} :: object.BaseObject<string>
+		} :: object.String
 end
 
 function eval_program(program: AST.Program, env: object.Environment)
@@ -214,7 +248,7 @@ function eval_program(program: AST.Program, env: object.Environment)
 	return result
 end
 
-function eval(node: AST.Node, env: object.Environment): object.BaseObject<unknown> | any
+function eval(node: AST.Node, env: object.Environment): object.Unknown | any
 	if node.node_type == AST.PROGRAM then -- Statements
 		return eval_program(node :: AST.Program, env)
 	elseif node.node_type == AST.EXPRESSION_STATEMENT then
@@ -230,7 +264,7 @@ function eval(node: AST.Node, env: object.Environment): object.BaseObject<unknow
 		return {
 			obj_type = object.kinds.RETURN,
 			value = value,
-		} :: object.BaseObject<unknown>
+		} :: object.Unknown
 	elseif node.node_type == AST.LET_STATEMENT then
 		local value = eval((node :: AST.LetStatement).value, env)
 		if value.obj_type == object.kinds.ERROR then
@@ -241,7 +275,7 @@ function eval(node: AST.Node, env: object.Environment): object.BaseObject<unknow
 			return {
 				obj_type = object.kinds.ERROR,
 				value = "cannot modify constant",
-			} :: object.BaseObject<string>
+			} :: object.String
 		end
 
 		local got, ok = env:get((node :: AST.LetStatement).name.value)
@@ -249,7 +283,7 @@ function eval(node: AST.Node, env: object.Environment): object.BaseObject<unknow
 			return {
 				obj_type = object.kinds.ERROR,
 				value = "cannot modify constant",
-			} :: object.BaseObject<string>
+			} :: object.String
 		end
 
 		env:set((node :: AST.LetStatement).name.value, value, (node :: AST.LetStatement).constant)
@@ -268,7 +302,7 @@ function eval(node: AST.Node, env: object.Environment): object.BaseObject<unknow
 			return {
 				obj_type = object.kinds.ERROR,
 				value = "cannot modify constant",
-			} :: object.BaseObject<string>
+			} :: object.String
 		end
 
 		local got = env:get((node :: AST.AssignmentStatement).name.value)
@@ -276,7 +310,7 @@ function eval(node: AST.Node, env: object.Environment): object.BaseObject<unknow
 			return {
 				obj_type = object.kinds.ERROR,
 				value = "cannot modify constant",
-			} :: object.BaseObject<string>
+			} :: object.String
 		end
 
 		env:set((node :: AST.AssignmentStatement).name.value, value, false)
@@ -297,7 +331,7 @@ function eval(node: AST.Node, env: object.Environment): object.BaseObject<unknow
 		end
 
 		if array.obj_type == object.kinds.ARRAY and index.obj_type == object.kinds.NUMBER then
-			local arr = array.value :: { object.BaseObject<unknown> }
+			local arr = array.value :: { object.Unknown }
 			local ind = index.value :: number
 
 			arr[ind + 1] = value
@@ -314,14 +348,16 @@ function eval(node: AST.Node, env: object.Environment): object.BaseObject<unknow
 		return {
 			obj_type = object.kinds.STRING,
 			value = (node :: AST.StringLiteral).value,
-		} :: object.BaseObject<string>
+		} :: object.String
 	elseif node.node_type == AST.INTEGER_LITERAL then
 		return {
 			obj_type = object.kinds.NUMBER,
 			value = (node :: AST.IntegerLiteral).value,
-		} :: object.BaseObject<number>
+		} :: object.Number
 	elseif node.node_type == AST.BOOLEAN_LITERAL then
 		return object.constants[(node :: AST.BooleanLiteral).value]
+  elseif node.node_type == AST.HASH_LITERAL then
+    return eval_hash_literal(node :: any, env)
 	elseif node.node_type == AST.FUNCTION_LITERAL then
 		return {
 			obj_type = object.kinds.FUNCTION,
@@ -336,7 +372,7 @@ function eval(node: AST.Node, env: object.Environment): object.BaseObject<unknow
 		return {
 			obj_type = object.kinds.ARRAY,
 			value = elements,
-		} :: object.BaseObject<{ object.BaseObject<unknown> }>
+		} :: object.Array
 	elseif node.node_type == AST.PREFIX_EXPRESSION then -- Expressions
 		local right = eval((node :: AST.PrefixExpression).right, env)
 		if right.obj_type == object.kinds.ERROR then
@@ -368,10 +404,24 @@ function eval(node: AST.Node, env: object.Environment): object.BaseObject<unknow
 		end
 
 		if left.obj_type == object.kinds.ARRAY and index.obj_type == object.kinds.NUMBER then
-			local arr = left.value :: {object.BaseObject<unknown>}
+			local arr = left.value :: {object.Unknown}
 			local ind = index.value :: number
 
 			return arr[ind + 1] or object.constants.null
+    elseif left.obj_type == object.kinds.HASH then
+      if not is_hashable(index.obj_type) then
+        return {
+          obj_type = object.kinds.STRING,
+          value = `unusable hash key: {index.obj_type}`
+        }
+      end
+
+      local pair = (left :: object.Hash).value[index.value]
+      if not pair then
+        return object.constants.null
+      end
+
+      return pair
 		end
 
 		return {

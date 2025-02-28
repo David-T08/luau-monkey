@@ -16,8 +16,19 @@ local OBJ_TYPES_STRINGS = table.freeze({
 	[object.kinds.ARRAY] = "ARRAY",
 	[object.kinds.RETURN] = "RETURN",
 	[object.kinds.NULL] = "NULL",
-	[object.kinds.BUILTIN_FUNCTION] = "BUILTIN_FUNCTION"
+	[object.kinds.BUILTIN_FUNCTION] = "BUILTIN_FUNCTION",
+	[object.kinds.HASH] = "HASH",
 })
+
+function dictionary_len(dict): number
+	local len = 0
+
+	for _ in pairs(dict) do
+		len += 1
+	end
+
+	return len
+end
 
 local function expr_typeof(expr: object.BaseObject<unknown> | any): string
 	local typ = type(expr)
@@ -38,7 +49,12 @@ local function expr_typeof(expr: object.BaseObject<unknown> | any): string
 end
 
 local function expect(what, expr, err_lvl)
-	assert.are_equal(expr_typeof(what), expr_typeof(expr), `Expected expression to be an {expr_typeof(what)}, got {expr_typeof(expr)}`, err_lvl)
+	assert.are_equal(
+		expr_typeof(what),
+		expr_typeof(expr),
+		`Expected expression to be an {expr_typeof(what)}, got {expr_typeof(expr)}`,
+		err_lvl
+	)
 end
 
 local function test_eval(input)
@@ -328,14 +344,10 @@ return {
 		it("can evaluate array indexing", function()
 			local input = "[1, 2 * 2, 3 + 3]"
 
-			local evaluated = test_eval(input) :: object.BaseObject<{object.BaseObject<unknown>}>
+			local evaluated = test_eval(input) :: object.Array
 			expect(object.kinds.ARRAY, evaluated)
 
-			assert.are_equal(
-				3,
-				#evaluated.value,
-				`Expected 3 elements, got {#evaluated.value}`
-			)
+			assert.are_equal(3, #evaluated.value, `Expected 3 elements, got {#evaluated.value}`)
 
 			test_object(evaluated.value[1], object.kinds.NUMBER, 1)
 			test_object(evaluated.value[2], object.kinds.NUMBER, 4)
@@ -364,6 +376,59 @@ return {
 				else
 					test_object(evaluated, object.kinds.NULL, "NULL")
 				end
+			end
+		end),
+
+		it("can evaluate has literals", function()
+			local input = [[let two = "two";
+{
+"one": 10 - 9,
+two: 1 + 1,
+"thr" + "ee": 6 / 2,
+4: 4,
+true: 5,
+false: 6
+}]]
+
+			local evaluated = test_eval(input) :: object.Hash
+			expect(object.kinds.HASH, evaluated)
+
+			local expected = {
+				["one"] = 1,
+				["two"] = 2,
+				["three"] = 3,
+				[4] = 4,
+				[true] = 5,
+				[false] = 6,
+			}
+
+			assert.are_equal(dictionary_len(evaluated.value), 6, `Expected 6 pairs, got $1`)
+			for exp_key, exp_value in pairs(expected) do
+				local pair = evaluated.value[exp_key]
+
+				test_object(pair, object.kinds.NUMBER, exp_value)
+			end
+		end),
+
+		it("can evaluate has literals", function()
+			local tests = {
+        {'{"foo": 5}["foo"]', 5},
+        {'{"foo": 4}["bar"]', nil},
+        {'let key = "foo"; {"foo": 5}[key]`', 5},
+        {'{}["foo"]', nil},
+        {'{5: 5}[5]', 5},
+        {'{true: 5}[true]', 5},
+        {'{false: 5}[false]', 5}
+      }
+
+			for _, test in pairs(tests) do
+        local evaluated = test_eval(test[1]) :: object.Hash
+
+        if test[2] == nil then
+          test_object(evaluated, object.kinds.NULL, "NULL")
+        else
+          test_object(evaluated, object.kinds.NUMBER, test[2])        
+        end
 			end
 		end),
 	},
