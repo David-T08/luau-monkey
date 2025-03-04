@@ -261,7 +261,7 @@ local function compile(node: AST.Node, debugging: boolean?, prev_symbol_table: s
     end
   elseif node.node_type == AST.LET_STATEMENT then
     reset = false
-    local err = compile((node :: AST.LetStatement).value)
+    local err = compile((node :: AST.LetStatement).value, debugging, prev_symbol_table, prev_constants)
     if err then
       return err
     end
@@ -275,6 +275,16 @@ local function compile(node: AST.Node, debugging: boolean?, prev_symbol_table: s
     end
 
     emit(opcodes.OP_GET_GLOBAL, resolved.index)
+  elseif node.node_type == AST.ARRAY_LITERAL then
+    for _, element in ipairs((node :: AST.ArrayLiteral).elements) do
+      reset = false
+      local err = compile(element, debugging, prev_symbol_table, prev_constants)
+      if err then 
+        return err
+      end
+    end
+
+    emit(opcodes.OP_ARRAY, #(node :: AST.ArrayLiteral).elements)
 	end
 
 	reset = true

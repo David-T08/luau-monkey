@@ -94,7 +94,7 @@ local function test_integer_object(expected: number, got: object.Number)
 end
 
 local function test_string_object(expected: string, got: object.String)
-  expect("STRING", got, 5)
+	expect("STRING", got, 5)
 	assert.are_equal(got.value, expected, `Expected value to be $2, got $1`, 5)
 end
 
@@ -105,8 +105,8 @@ local function test_constants(expected: { any }, got: { object.BaseObject<unknow
 		local typ = typeof(constant)
 		if typ == "number" then
 			test_integer_object(constant, got[index] :: any)
-    elseif typ == "string" then
-      test_string_object(constant, got[index] :: any)
+		elseif typ == "string" then
+			test_string_object(constant, got[index] :: any)
 		end
 	end
 end
@@ -321,7 +321,7 @@ return {
 		end),
 
 		it("can do global let statements", function()
-			local tests: {CompilerTest} = {
+			local tests: { CompilerTest } = {
 				{
 					input = "let one = 1; let two = 2; ",
 					expected_constants = { 1, 2 },
@@ -332,56 +332,99 @@ return {
 						make(opcodes.OP_SET_GLOBAL, 1),
 					},
 				},
-        {
-          input = "let one = 1; one;",
-          expected_constants = {1},
-          expected_instructions = {
-            make(opcodes.OP_CONSTANT, 0),
-            make(opcodes.OP_SET_GLOBAL, 0),
-            make(opcodes.OP_GET_GLOBAL, 0),
-            make(opcodes.OP_POP)
-          }
-        },
-        {
-          input = "let one = 1;let two = one; two;",
-          expected_constants = {1}, 
-          expected_instructions = {
-            make(opcodes.OP_CONSTANT, 0),
-            make(opcodes.OP_SET_GLOBAL, 0),
-            make(opcodes.OP_GET_GLOBAL, 0),
-            make(opcodes.OP_SET_GLOBAL, 1),
-            make(opcodes.OP_GET_GLOBAL, 1),
-            make(opcodes.OP_POP)
-          }
-        }
+				{
+					input = "let one = 1; one;",
+					expected_constants = { 1 },
+					expected_instructions = {
+						make(opcodes.OP_CONSTANT, 0),
+						make(opcodes.OP_SET_GLOBAL, 0),
+						make(opcodes.OP_GET_GLOBAL, 0),
+						make(opcodes.OP_POP),
+					},
+				},
+				{
+					input = "let one = 1;let two = one; two;",
+					expected_constants = { 1 },
+					expected_instructions = {
+						make(opcodes.OP_CONSTANT, 0),
+						make(opcodes.OP_SET_GLOBAL, 0),
+						make(opcodes.OP_GET_GLOBAL, 0),
+						make(opcodes.OP_SET_GLOBAL, 1),
+						make(opcodes.OP_GET_GLOBAL, 1),
+						make(opcodes.OP_POP),
+					},
+				},
 			}
 
-      run_compiler_tests(tests)
+			run_compiler_tests(tests)
 		end),
 
-    it("can do string expressions", function()
-      local tests: {CompilerTest} = {
-        {
-          input = '"monkey"',
-          expected_constants = {"monkey"},
-          expected_instructions = {
-            make(opcodes.OP_CONSTANT, 0),
-            make(opcodes.OP_POP)
-          }
-        },
-        {
-          input = '"mon" + "key"',
-          expected_constants = {"mon", "key"},
-          expected_instructions = {
-            make(opcodes.OP_CONSTANT, 0),
-            make(opcodes.OP_CONSTANT, 1),
-            make(opcodes.OP_ADD),
-            make(opcodes.OP_POP)
-          }
-        }
-      }
+		it("can do string expressions", function()
+			local tests: { CompilerTest } = {
+				{
+					input = '"monkey"',
+					expected_constants = { "monkey" },
+					expected_instructions = {
+						make(opcodes.OP_CONSTANT, 0),
+						make(opcodes.OP_POP),
+					},
+				},
+				{
+					input = '"mon" + "key"',
+					expected_constants = { "mon", "key" },
+					expected_instructions = {
+						make(opcodes.OP_CONSTANT, 0),
+						make(opcodes.OP_CONSTANT, 1),
+						make(opcodes.OP_ADD),
+						make(opcodes.OP_POP),
+					},
+				},
+			}
 
+			run_compiler_tests(tests)
+		end),
+
+		it("can do arrays", function()
+			local tests: { CompilerTest } = {
+				{
+					input = "[]",
+					expected_constants = {},
+					expected_instructions = {
+						make(opcodes.OP_ARRAY, 0),
+						make(opcodes.OP_POP),
+					},
+				},
+				{
+					input = "[1, 2, 3]",
+					expected_constants = { 1, 2, 3 },
+					expected_instructions = {
+						make(opcodes.OP_CONSTANT, 0),
+						make(opcodes.OP_CONSTANT, 1),
+						make(opcodes.OP_CONSTANT, 2),
+						make(opcodes.OP_ARRAY, 3),
+						make(opcodes.OP_POP),
+					},
+				},
+				{
+					input = "[1 + 2, 3 - 4, 5 * 6]",
+					expected_constants = { 1, 2, 3, 4, 5, 6 },
+					expected_instructions = {
+						make(opcodes.OP_CONSTANT, 0),
+						make(opcodes.OP_CONSTANT, 1),
+						make(opcodes.OP_ADD),
+						make(opcodes.OP_CONSTANT, 2),
+						make(opcodes.OP_CONSTANT, 3),
+						make(opcodes.OP_SUB),
+						make(opcodes.OP_CONSTANT, 4),
+						make(opcodes.OP_CONSTANT, 5),
+						make(opcodes.OP_MUL),
+						make(opcodes.OP_ARRAY, 3),
+						make(opcodes.OP_POP),
+					},
+				}
+			}
+      
       run_compiler_tests(tests)
-    end)
+		end),
 	},
 }

@@ -50,6 +50,15 @@ local function test_expected_object(expected: any, got: object.BaseObject<unknow
 	elseif typ == "boolean" then
 		expect("BOOLEAN", got, 4)
 		assert.are_equal(got.value, expected, `Expected value to be $2, got $1`, 4)
+  elseif typ == "table" then
+		expect("ARRAY", got, 4)
+		assert.are_equal(#(got :: object.Array).value, #expected, `Expected length to be $2, got $1`, 4)
+
+    for i, expected_element in ipairs(expected) do
+      local got_element = (got :: object.Array).value[i]
+			expect("NUMBER", got_element, 4)
+			assert.are_equal(got_element.value, expected_element, `Expected value to be $2, got $1`, 4)
+    end
 	elseif typ == "nil" then
 		expect("NULL", got, 4)
 	end
@@ -166,6 +175,16 @@ return {
 			}
 
 			run_vm_tests(tests)
+		end),
+
+		it("can do arrays", function()
+			local tests = {
+				{ "[]", {} },
+				{ "[1, 2, 3]", { 1, 2, 3 } },
+				{ "[1 + 2, 3 * 4, 5 + 6]", { 3, 12, 11 } },
+			}
+
+      run_vm_tests(tests)
 		end),
 	},
 }

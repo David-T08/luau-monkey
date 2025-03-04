@@ -309,6 +309,25 @@ return function(
       if err then
         return err
       end
+    elseif op == opcodes.OP_ARRAY then
+      local length = swap_endianess(buffer.readu16(instructions, ip + 1))
+      ip += 2
+
+      local array = {}
+      local start = sp - length
+      -- Start from the first array item on the stack to the last
+      for i = start, sp do
+        array[i - start + 1] = stack[i]
+      end
+      sp = sp - length
+
+      local err = push({
+        obj_type = object.kinds.ARRAY,
+        value = array
+      })
+      if err then
+        return err
+      end
 		end
 
 		ip += 1
