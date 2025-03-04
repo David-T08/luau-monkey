@@ -66,8 +66,7 @@ local function run_vm_tests(tests, _debug: boolean?)
 		local vm_err, stack_top = vm(compiled.constants, compiled.instructions, _debug)
 		assert.are_equal(vm_err, nil, `VM failed to run: $1`)
 
-
-    -- print(stack_top, typeof(stack_top))
+		-- print(stack_top, typeof(stack_top))
 
 		test_expected_object(test[2], stack_top)
 	end
@@ -156,7 +155,17 @@ return {
 				{ "let one = 1; let two = one + one; one + two", 3 },
 			}
 
-      run_vm_tests(tests)
+			run_vm_tests(tests)
+		end),
+
+		it("can do string expressions", function()
+			local tests = {
+				{ `"monkey"`, "monkey" },
+				{ `"mon" + "key"`, "monkey" },
+				{ `"mon" + "key" + "banana"`, "monkeybanana" },
+			}
+
+			run_vm_tests(tests)
 		end),
 	},
 }

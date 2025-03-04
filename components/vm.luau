@@ -49,11 +49,11 @@ end
 
 local function pop(): (string?, object.BaseObject<unknown>)
 	local obj = stack[sp - 1]
-	log(`Popped {format(obj)} at sp {sp - 1}`)
 	if obj == nil then
 		log(` Underflowed`)
 		return `stack underflow`, {} :: any
 	end
+  log(`Popped {format(obj)} at sp {sp - 1}`)
 
 	stack[sp - 1] = nil
 	sp -= 1
@@ -81,13 +81,13 @@ local function execute_binary_operation(op: number): string?
 		local result = 0
 
 		if op == opcodes.OP_ADD then
-			result = (left :: object.BaseObject<number>).value + (right :: object.BaseObject<number>).value
+			result = (left :: object.Number).value + (right :: object.Number).value
 		elseif op == opcodes.OP_SUB then
-			result = (left :: object.BaseObject<number>).value - (right :: object.BaseObject<number>).value
+			result = (left :: object.Number).value - (right :: object.Number).value
 		elseif op == opcodes.OP_DIV then
-			result = (left :: object.BaseObject<number>).value / (right :: object.BaseObject<number>).value
+			result = (left :: object.Number).value / (right :: object.Number).value
 		elseif op == opcodes.OP_MUL then
-			result = (left :: object.BaseObject<number>).value * (right :: object.BaseObject<number>).value
+			result = (left :: object.Number).value * (right :: object.Number).value
 		else
 			return `unknown integer operator {op}`
 		end
@@ -95,7 +95,16 @@ local function execute_binary_operation(op: number): string?
 		return push({
 			obj_type = object.kinds.NUMBER,
 			value = result,
-		} :: object.BaseObject<number>)
+		} :: object.Number)
+  elseif left.obj_type == object.kinds.STRING and right.obj_type == object.kinds.STRING then
+    if op ~= opcodes.OP_ADD then 
+      return `unknown string operator {op}`
+    end
+
+    return push({
+      obj_type = object.kinds.STRING,
+      value = (left :: object.String).value .. (right :: object.String).value 
+    })
 	else
 		return `unsupported types for binary operation {left.obj_type} {right.obj_type}`
 	end
@@ -184,7 +193,8 @@ return function(
 				return err
 			end
 		elseif op == opcodes.OP_ADD or op == opcodes.OP_SUB or op == opcodes.OP_DIV or op == opcodes.OP_MUL then
-			execute_binary_operation(op)
+			local err = execute_binary_operation(op)
+      if err then return err end
 		elseif op == opcodes.OP_TRUE then
 			local err = push(object.constants[true])
 			if err then
@@ -248,7 +258,7 @@ return function(
 			local err2 = push({
 				obj_type = object.kinds.NUMBER,
 				value = -value.value :: number,
-			} :: object.BaseObject<number>)
+			} :: object.Number)
 			if err2 then
 				log(` Failed to push: {err2}`)
 				return err2

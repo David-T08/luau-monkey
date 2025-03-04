@@ -51,11 +51,6 @@ local function expect(what, expr, err_lvl)
 	assert.are_equal(expr_typeof(expr), what, `Expected object to be an $2, got $1`, err_lvl)
 end
 
-local function test_integer_object(expected: number, got: object.BaseObject<number>)
-	expect("NUMBER", got, 5)
-	assert.are_equal(got.value, expected, `Expected value to be $2, got $1`, 5)
-end
-
 local function concat_instructions(instructions: { bytecode.Instruction }): bytecode.Instruction
 	local size = 0
 	for _, instr in ipairs(instructions) do
@@ -93,6 +88,16 @@ local function test_instructions(expected: { bytecode.Instruction }, got: byteco
 	end
 end
 
+local function test_integer_object(expected: number, got: object.Number)
+	expect("NUMBER", got, 5)
+	assert.are_equal(got.value, expected, `Expected value to be $2, got $1`, 5)
+end
+
+local function test_string_object(expected: string, got: object.String)
+  expect("STRING", got, 5)
+	assert.are_equal(got.value, expected, `Expected value to be $2, got $1`, 5)
+end
+
 local function test_constants(expected: { any }, got: { object.BaseObject<unknown> })
 	assert.are_equal(#got, #expected, `Wrong number of constants, got: $1, expected: $2`)
 
@@ -100,6 +105,8 @@ local function test_constants(expected: { any }, got: { object.BaseObject<unknow
 		local typ = typeof(constant)
 		if typ == "number" then
 			test_integer_object(constant, got[index] :: any)
+    elseif typ == "string" then
+      test_string_object(constant, got[index] :: any)
 		end
 	end
 end
@@ -351,5 +358,30 @@ return {
 
       run_compiler_tests(tests)
 		end),
+
+    it("can do string expressions", function()
+      local tests: {CompilerTest} = {
+        {
+          input = '"monkey"',
+          expected_constants = {"monkey"},
+          expected_instructions = {
+            make(opcodes.OP_CONSTANT, 0),
+            make(opcodes.OP_POP)
+          }
+        },
+        {
+          input = '"mon" + "key"',
+          expected_constants = {"mon", "key"},
+          expected_instructions = {
+            make(opcodes.OP_CONSTANT, 0),
+            make(opcodes.OP_CONSTANT, 1),
+            make(opcodes.OP_ADD),
+            make(opcodes.OP_POP)
+          }
+        }
+      }
+
+      run_compiler_tests(tests)
+    end)
 	},
 }

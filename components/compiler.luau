@@ -12,7 +12,7 @@ local definitons = bytecode.definitions
 local _buffer_copy = buffer.copy
 local _buffer_new = buffer.create
 
-local constants = {}
+local constants: {object.Unknown} = {}
 local instructions = buffer.create(0)
 local symbol_table: symbol.SymbolTable = { count = 0, store = {} }
 
@@ -176,9 +176,9 @@ local function compile(node: AST.Node, debugging: boolean?, prev_symbol_table: s
 		else
 			return `unknown operator {operator}`
 		end
-	elseif node.node_type == AST.INTEGER_LITERAL then
-		local obj: object.BaseObject<number> = {
-			obj_type = object.kinds.NUMBER,
+	elseif node.node_type == AST.INTEGER_LITERAL or node.node_type == AST.STRING_LITERAL then
+		local obj: object.BaseObject<any> = {
+			obj_type = if node.node_type == AST.INTEGER_LITERAL then object.kinds.NUMBER else object.kinds.STRING,
 			value = (node :: AST.IntegerLiteral).value,
 		}
 
