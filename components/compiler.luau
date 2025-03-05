@@ -285,6 +285,26 @@ local function compile(node: AST.Node, debugging: boolean?, prev_symbol_table: s
     end
 
     emit(opcodes.OP_ARRAY, #(node :: AST.ArrayLiteral).elements)
+  elseif node.node_type == AST.HASH_LITERAL then
+    local count = 0
+  
+    for key, pair in pairs((node :: AST.HashLiteral).pairs) do
+      reset = false
+      local err = compile(key, debugging, prev_symbol_table, prev_constants)
+      if err then
+        return err
+      end
+
+      reset = false
+      local err2 = compile(pair, debugging, prev_symbol_table, prev_constants)
+      if err2 then
+        return err2 
+      end
+
+      count += 1
+    end
+    
+    emit(opcodes.OP_HASH, count * 2)
 	end
 
 	reset = true

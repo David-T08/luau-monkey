@@ -328,6 +328,34 @@ return function(
       if err then
         return err
       end
+    elseif op == opcodes.OP_HASH then
+			local length = swap_endianess(buffer.readu16(instructions, ip + 1))
+			ip += 2
+      
+			local map = {}
+      if length > 0 then
+        log(`Creating map of length {length}`)
+        local start = sp - length
+        for i = start, sp - 1, 2 do
+          local key = stack[i]
+          local value = stack[i + 1]
+
+          log(`[{key.value}] = {value.value} at sp {i}`)
+  
+          map[key.value] = value
+        end
+        sp = start
+      else
+        log("Creating empty map")
+      end
+
+			local err = push({
+				obj_type = object.kinds.HASH,
+				value = map,
+			})
+			if err then
+				return err
+			end
 		end
 
 		ip += 1

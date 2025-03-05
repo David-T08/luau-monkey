@@ -33,6 +33,7 @@ local opcodes = table.freeze({
   OP_GET_GLOBAL = 0x12,
 
   OP_ARRAY = 0x13,
+  OP_HASH = 0x14,
 })
 
 local definitions = table.freeze({
@@ -122,6 +123,10 @@ local definitions = table.freeze({
 
   [opcodes.OP_ARRAY] = {
     name = "OpArray",
+    widths = {2}
+  },
+  [opcodes.OP_HASH] = {
+    name = "OpHash",
     widths = {2}
   }
 })
